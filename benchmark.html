@@ -28,11 +28,17 @@
       margin: 10px 0;
       padding: 8px 16px;
     }
+    #warnings {
+      display: none;
+      background-color: bisque;
+      border: 1px solid redbrick;
+    }
   </style>
 </head>
 <body>
   <h1>Rendering Micro Benchmark</h1>
   <p>Enter HTML snippets below to benchmark their performance.</p>
+  <p id="warnings"></p>
 
   <div id="container">
     <textarea id="input" rows="10"></textarea>
@@ -57,6 +63,8 @@
       run.addEventListener('click', () => {
         runTests();
       });
+
+      showTimerQuantizationWarningIfNeeded();
 
       // If set, use the window location hash for testcases. Otherwise, use a
       // set of predefined examples.
@@ -106,6 +114,9 @@
       // TODO: Ensure the rest of the DOM isn't affecting this.
       const bench = document.createElement('div');
       results.replaceChildren(bench);
+
+      // TODO: Add warmup.
+      // TODO: Randomize testcases.
 
       let startParseTime = 0;
       let startStyleLayoutTime = 0;
@@ -174,13 +185,20 @@
       let scratch = document.createElement('div');
       scratch.innerHTML = input.value;
       for (const div of scratch.querySelectorAll('testcase')) {
-        for (var i = 0; i < repeatCount; i++) {
-          var name = div.getAttribute('name');
-          var uniqueHtml = div.innerHTML.replaceAll(name, `${name}_${i}`);
+        for (let i = 0; i < repeatCount; i++) {
+          let name = div.getAttribute('name');
+          let uniqueHtml = div.innerHTML.replaceAll(name, `${name}_${i}`);
           testcases.push(new Testcase(name, uniqueHtml));
         }
       }
       return testcases;
+    }
+
+    function showTimerQuantizationWarningIfNeeded() {
+      if (!self.crossOriginIsolated) {
+        warnings.style.display = 'inline';
+        warnings.innerHTML = '<b>Warning:</b> Timer precision impacted because not <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/crossOriginIsolated">cross-origin isolated</a>. Use <code>python3 crossOriginIsolatedServer.py</code>.</p>';
+      }
     }
 
     const exampleTestcases = `
