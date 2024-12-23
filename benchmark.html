@@ -67,8 +67,8 @@
 
     function updatePreviewContent() {
       previewContent.innerHTML = '';
-      for (const [name, html] of getTestcaseHtml(1)) {
-        previewContent.innerHTML += `<h4>${name}</h4>${html[0]}`;
+      for (const testcase of getTestcases(1)) {
+        previewContent.innerHTML += `<h4>${testcase.name}</h4>${testcase.html}`;
       }
     }
 
@@ -76,6 +76,17 @@
       const encodedHTML = btoa(input.value);
       const newURL = window.location.origin + window.location.pathname + '#' + encodedHTML;
       window.history.replaceState({}, '', newURL);
+    }
+
+    class Testcase {
+      constructor(name, html) {
+        this.name = name;
+        this.html = html;
+
+        this.parseTime = 0;
+        this.styleLayoutTime = 0;
+        this.paintTime = 0;
+      }
     }
 
     async function waitForFrame() {
@@ -87,72 +98,87 @@
     }
 
     async function runTests() {
-      const testRepeat = 5;
-      const debugConsoleTimestamps = true;
-      let resultsText = '';
-      var bench = document.createElement('div');
-      results.innerHtml = '';
-      results.appendChild(bench);
-      const allTests = getTestcaseHtml(testRepeat);
-      for (const [name, htmls] of allTests) {
-        // Give gc a chance between tests.
-        await waitForTimeout(100);
-        // Add a timestamp so we can analyze that we are measuring correctly
-        // using tracing / devtools performance timeline.
-        if (debugConsoleTimestamps)
-          console.timeStamp(`{$name} - start`);
+      const testRepeat = 10;
+      const testcases = getTestcases(testRepeat);
 
-        var parseTime = 0;
-        var styleLayoutTime = 0;
-        var paintTime = 0;
-        for (var i = 0; i < htmls.length; i++) {
-          bench.innerHTML = '';
-          // Give gc a chance between repeats.
-          await waitForTimeout(20);
-          await waitForFrame();
-          await waitForFrame();
-          if (debugConsoleTimestamps)
-            console.timeStamp('before measuring time');
-          var start = performance.now();
-          bench.innerHTML = htmls[i];
-          var endParse = performance.now();
-          if (debugConsoleTimestamps)
-            console.timeStamp('after measuring parse time');
-          parseTime += (endParse - start);
-          bench.offsetWidth;
-          var endStyleLayout = performance.now();
-          if (debugConsoleTimestamps)
-            console.timeStamp('after measuring stylelayout time');
-          styleLayoutTime += (endStyleLayout - endParse);
-          await waitForTimeout();
-          paintTime += (performance.now() - endStyleLayout);
-          if (debugConsoleTimestamps)
-            console.timeStamp('after measuring paint time');
+      const debugTimestamps = true;
+
+      // TODO: Ensure the rest of the DOM isn't affecting this.
+      const bench = document.createElement('div');
+      results.replaceChildren(bench);
+
+      let startParseTime = 0;
+      let startStyleLayoutTime = 0;
+      let startPaintTime = 0;
+      let endPaintTime = 0;
+
+      // Wait for quiescence.
+      await waitForTimeout(200);
+
+      for (const testcase of testcases) {
+        bench.innerHTML = '';
+        // Give gc a chance between repeats.
+        await waitForTimeout(20);
+        await waitForFrame();
+        await waitForFrame();
+
+        startParseTime = performance.now();
+        bench.innerHTML = testcase.html;
+        startStyleLayoutTime = performance.now();
+        bench.offsetWidth; // force layout.
+        startPaintTime = performance.now();
+        await waitForTimeout();
+        endPaintTime = performance.now();
+
+        testcase.parseTime = startStyleLayoutTime - startParseTime;
+        testcase.styleLayoutTime = startPaintTime - startStyleLayoutTime;
+        testcase.paintTime = endPaintTime - startPaintTime;
+
+        if (debugTimestamps) {
+          performance.mark(`${testcase.name} - startParse`, {startTime: startParseTime});
+          performance.mark(`startStyleLayout`, {startTime: startStyleLayoutTime});
+          performance.mark(`startPaintTime`, {startTime: startPaintTime});
+          performance.mark(`endPaintTime`, {startTime: endPaintTime});
         }
-        if (debugConsoleTimestamps)
-          console.timeStamp('done');
-        // TODO: Remove all dynamic allocations.
-        resultsText += `${name}:<br>
-          parsing: ${parseFloat((parseTime / testRepeat).toFixed(3))}<br>
-          styleLayout: ${parseFloat((styleLayoutTime / testRepeat).toFixed(3))}<br>
-          paint: ${parseFloat((paintTime / testRepeat).toFixed(3))}<br>
-          <br>`;
       }
-      results.innerHTML = resultsText;
+
+      results.innerHTML = summarizeResults(testcases);
     }
 
-    // Return a map of testcase name -> [html_1, html_2, ..., html_count].
-    function getTestcaseHtml(count) {
-      let testcases = new Map();
+    function summarizeResults(testcases) {
+      let results = '';
+      const totals = testcases.reduce((acc, curr) => {
+        acc[curr.name] = acc[curr.name] || {parse: 0, styleLayout: 0, paint: 0, total: 0, count: 0};
+        acc[curr.name].parse += curr.parseTime;
+        acc[curr.name].styleLayout += curr.styleLayoutTime;
+        acc[curr.name].paint += curr.paintTime;
+        acc[curr.name].total += curr.parseTime + curr.styleLayoutTime + curr.paintTime;
+        acc[curr.name].count++;
+        return acc;
+      }, {});
+      for (const name in totals) {
+        let total = totals[name];
+        results += `<b>${name}: ${parseFloat((total.total / total.count).toFixed(3))} ms</b>:<br>`;
+        results += `  parse: ${parseFloat((total.parse / total.count).toFixed(3))} ms<br>`;
+        results += `  styleLayout: ${parseFloat((total.styleLayout / total.count).toFixed(3))} ms<br>`;
+        results += `  paint: ${parseFloat((total.paint / total.count).toFixed(3))} ms<br><br>`;
+      }
+      return results;
+    }
+
+    // Parse testcases from #input and return an array of |repeatCount| unique
+    // testcases, where a testcase is made unique by replacing all instances of
+    // the name in the html with "name_" and an id.
+    function getTestcases(repeatCount) {
+      let testcases = [];
       let scratch = document.createElement('div');
       scratch.innerHTML = input.value;
       for (const div of scratch.querySelectorAll('testcase')) {
-        var name = div.getAttribute('name');
-        var html = [];
-        for (var i = 0; i < count; i++) {
-          html.push(div.innerHTML.replaceAll(name, `${name}_${i}`));
+        for (var i = 0; i < repeatCount; i++) {
+          var name = div.getAttribute('name');
+          var uniqueHtml = div.innerHTML.replaceAll(name, `${name}_${i}`);
+          testcases.push(new Testcase(name, uniqueHtml));
         }
-        testcases.set(name, html);
       }
       return testcases;
     }
