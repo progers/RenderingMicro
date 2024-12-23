@@ -179,15 +179,23 @@
 
     // Parse testcases from #input and return an array of |repeatCount| unique
     // testcases, where a testcase is made unique by replacing all instances of
-    // the name in the html with "name_" and an id.
+    // the name in the html with "name_" and a unique id.
     function getTestcases(repeatCount) {
       let testcases = [];
+
       let scratch = document.createElement('div');
       scratch.innerHTML = input.value;
+
+      // Use an incrementing int from local storage as part of the unique id.
+      // This breaks some page-level caches (e.g., svg image caching in chrome).
+      let noCacheInt = parseInt(localStorage.getItem('noCacheInt') || 1004);
+      localStorage.setItem('noCacheInt', ++noCacheInt);
+
       for (const div of scratch.querySelectorAll('testcase')) {
         for (let i = 0; i < repeatCount; i++) {
           let name = div.getAttribute('name');
-          let uniqueHtml = div.innerHTML.replaceAll(name, `${name}_${i}`);
+          let uniqueName = `${name}_${i}_${noCacheInt}`;
+          let uniqueHtml = div.innerHTML.replaceAll(name, uniqueName);
           testcases.push(new Testcase(name, uniqueHtml));
         }
       }
