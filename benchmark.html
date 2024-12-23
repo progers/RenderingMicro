@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Rendering Micro Benchmark</title>
+  <style>
+    body {
+      font-family: sans-serif;
+    }
+    #container {
+      display: flex;
+    }
+    #input, #preview {
+      width: 50%;
+      padding: 10px;
+      border: 1px solid #ccc;
+    }
+    #preview {
+      background-color: #f5f5f5;
+    }
+    #previewTitle {
+      margin-bottom: 5px;
+    }
+    #run {
+      margin: 10px 0;
+      padding: 8px 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Rendering Micro Benchmark</h1>
+  <p>Enter HTML snippets below to benchmark their performance.</p>
+
+  <div id="container">
+    <textarea id="input" rows="10"></textarea>
+    <div id="preview">
+      <h2>Preview</h2>
+      <div id="previewContent"></div>
+    </div>
+  </div>
+
+  <button id="run">Run Benchmark</button>
+
+  <h2>Results</h2>
+  <div id="results"></div>
+
+  <script>
+    onload = () => {
+      input.value = exampleTestcases.trim();
+      updatePreviewContent();
+    }
+
+    input.addEventListener('input', () => {
+      updatePreviewContent();
+    });
+
+    function updatePreviewContent() {
+      previewContent.innerHTML = '';
+      for (const [name, html] of getTestcaseHtml(1)) {
+        previewContent.innerHTML += `<h4>${name}</h4>${html[0]}`;
+      }
+    }
+
+    run.addEventListener('click', () => {
+      runTests();
+    });
+
+    async function waitForFrame() {
+      return new Promise(requestAnimationFrame);
+    }
+
+    async function waitForTimeout(t = 0) {
+      return new Promise((resolve, reject) => setTimeout(resolve, t))
+    }
+
+    async function runTests() {
+      const testRepeat = 5;
+      const debugConsoleTimestamps = true;
+      let resultsText = '';
+      var bench = document.createElement('div');
+      results.innerHtml = '';
+      results.appendChild(bench);
+      const allTests = getTestcaseHtml(testRepeat);
+      for (const [name, htmls] of allTests) {
+        // Give gc a chance between tests.
+        await waitForTimeout(100);
+        // Add a timestamp so we can analyze that we are measuring correctly
+        // using tracing / devtools performance timeline.
+        if (debugConsoleTimestamps)
+          console.timeStamp(`{$name} - start`);
+
+        var parseTime = 0;
+        var styleLayoutTime = 0;
+        var paintTime = 0;
+        for (var i = 0; i < htmls.length; i++) {
+          bench.innerHTML = '';
+          // Give gc a chance between repeats.
+          await waitForTimeout(20);
+          await waitForFrame();
+          await waitForFrame();
+          if (debugConsoleTimestamps)
+            console.timeStamp('before measuring time');
+          var start = performance.now();
+          bench.innerHTML = htmls[i];
+          var endParse = performance.now();
+          if (debugConsoleTimestamps)
+            console.timeStamp('after measuring parse time');
+          parseTime += (endParse - start);
+          bench.offsetWidth;
+          var endStyleLayout = performance.now();
+          if (debugConsoleTimestamps)
+            console.timeStamp('after measuring stylelayout time');
+          styleLayoutTime += (endStyleLayout - endParse);
+          await waitForTimeout();
+          paintTime += (performance.now() - endStyleLayout);
+          if (debugConsoleTimestamps)
+            console.timeStamp('after measuring paint time');
+        }
+        if (debugConsoleTimestamps)
+          console.timeStamp('done');
+        // TODO: Remove all dynamic allocations.
+        resultsText += `${name}:<br>
+          parsing: ${parseFloat((parseTime / testRepeat).toFixed(3))}<br>
+          styleLayout: ${parseFloat((styleLayoutTime / testRepeat).toFixed(3))}<br>
+          paint: ${parseFloat((paintTime / testRepeat).toFixed(3))}<br>
+          <br>`;
+      }
+      results.innerHTML = resultsText;
+    }
+
+    // Return a map of testcase name -> [html_1, html_2, ..., html_count].
+    function getTestcaseHtml(count) {
+      let testcases = new Map();
+      let scratch = document.createElement('div');
+      scratch.innerHTML = input.value;
+      for (const div of scratch.querySelectorAll('testcase')) {
+        var name = div.getAttribute('name');
+        var html = [];
+        for (var i = 0; i < count; i++) {
+          html.push(div.innerHTML.replaceAll(name, `${name}_${i}`));
+        }
+        testcases.set(name, html);
+      }
+      return testcases;
+    }
+
+    const exampleTestcases = `
+<testcase name="svg-image">
+  <style>
+    .svg-image {
+      display: inline-block;
+      height: 24px;
+      width: 24px;
+      background-image: url('data:image/svg+xml,<svg uinqueid="svg-image" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23747878" d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"></path></svg>');
+    }
+  </style>
+  <div class="svg-image"></div>
+</testcase>
+<testcase name="inline-svg">
+  <style>
+    .inline-svg {
+      display: inline-block;
+      height: 24px;
+      width: 24px;
+      fill: #747878;
+    }
+  </style>
+  <svg class="inline-svg" focusable="false" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+    <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"></path>
+  </svg>
+</testcase>
+<testcase name="css-clip-path">
+  <style>
+    .css-clip-path {
+      clip-path: path('M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z');
+      display: inline-block;
+      height: 24px;
+      width: 24px;
+      background-color: #747878;
+    }
+  </style>
+  <div class="css-clip-path"></div>
+</testcase>
+<testcase name="css-clip-polygon">
+  <style>
+    .css-clip-polygon {
+      clip-path: polygon(16.59px 8.59px,12px 13.17px,7.41px 8.59px,6px 10px,12px 16px,18px 10px);
+      display: inline-block;
+      height: 24px;
+      width: 24px;
+      background-color: #747878;
+    }
+  </style>
+  <div class="css-clip-polygon"></div>
+</testcase>`;
+  </script>
+</body>
+</html>
