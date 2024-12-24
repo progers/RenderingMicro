@@ -108,6 +108,7 @@
     async function runTests() {
       const testRepeat = 10;
       const testcases = getTestcases(testRepeat);
+      shuffleArray(testcases); // Randomize the testcase order.
 
       const debugTimestamps = true;
 
@@ -116,7 +117,6 @@
       results.replaceChildren(bench);
 
       // TODO: Add warmup.
-      // TODO: Randomize testcases.
 
       let startParseTime = 0;
       let startStyleLayoutTime = 0;
@@ -167,7 +167,11 @@
         acc[curr.name].count++;
         return acc;
       }, {});
-      for (const name in totals) {
+
+      // Use `getTestcases` for the names to preserve the original order, as the
+      // tests may have been shuffled.
+      for (const testcase of getTestcases(1)) {
+        let name = testcase.name;
         let total = totals[name];
         results += `<b>${name}: ${parseFloat((total.total / total.count).toFixed(3))} ms</b>:<br>`;
         results += `  parse: ${parseFloat((total.parse / total.count).toFixed(3))} ms<br>`;
@@ -206,6 +210,14 @@
       if (!self.crossOriginIsolated) {
         warnings.style.display = 'inline';
         warnings.innerHTML = '<b>Warning:</b> Timer precision impacted because not <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/crossOriginIsolated">cross-origin isolated</a>. Use <code>python3 crossOriginIsolatedServer.py</code>.</p>';
+      }
+    }
+
+    // https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
       }
     }
 
