@@ -1,3 +1,5 @@
+const debugTimestamps = true;
+
 class Snippet {
   constructor(name, html) {
     this.name = name;
@@ -5,27 +7,41 @@ class Snippet {
   }
 }
 
-class Times {
-  constructor(name) {
-    this.name = name;
-
+class RawTimes {
+  constructor() {
     this.parseTime = 0;
     this.styleLayoutTime = 0;
     this.paintTime = 0;
   }
 }
 
-// Benchmark each Snippet in `inputSnippets`, returning Times for each.
+class TimeStats {
+  constructor(name) {
+    this.name = name;
+
+    this.parseTimeAvg = 0;
+    this.styleLayoutTimeAvg = 0;
+    this.paintTimeAvg = 0;
+    this.totalTimeAvg = 0;
+
+    this.parseTimeStdDev = 0;
+    this.styleLayoutTimeStdDev = 0;
+    this.paintTimeStdDev = 0;
+    this.totalTimeStdDev = 0;
+  }
+}
+
+// Benchmark each Snippet in `inputSnippets`, returning `SnippetTimesAndStats`
+// for each.
 export default async function benchmark(inputSnippets, benchmarkContainer) {
-  const debugTimestamps = true;
   const repeatCount = 20;
 
   const snippets = generateUnique(inputSnippets, repeatCount);
   shuffleArray(snippets); // Randomize the order.
 
-  const results = [];
+  const rawTimes = [];
   for (const snippet of snippets)
-    results.push(new Times(snippet.name));
+    rawTimes.push(new RawTimes());
 
   // TODO: Ensure the rest of the DOM isn't affecting this.
   const benchDiv = document.createElement('div');
@@ -33,14 +49,14 @@ export default async function benchmark(inputSnippets, benchmarkContainer) {
 
   // TODO: Add warmup.
 
-  await benchmarkInternal(snippets, results, benchDiv);
+  await benchmarkInternal(snippets, rawTimes, benchDiv);
 
   // The test names were shuffled, so use the original order from inputSnippets.
   const names = inputSnippets.map(snippet => snippet.name);
-  return sumTimes(results, names);
+  return getTimeStats(snippets, rawTimes, names);
 }
 
-async function benchmarkInternal(snippets, results, benchDiv) {
+async function benchmarkInternal(snippets, rawTimes, benchDiv) {
   let startParseTime = 0;
   let startStyleLayoutTime = 0;
   let startPaintTime = 0;
@@ -65,9 +81,9 @@ async function benchmarkInternal(snippets, results, benchDiv) {
     await waitForTimeout();
     endPaintTime = performance.now();
 
-    results[i].parseTime = startStyleLayoutTime - startParseTime;
-    results[i].styleLayoutTime = startPaintTime - startStyleLayoutTime;
-    results[i].paintTime = endPaintTime - startPaintTime;
+    rawTimes[i].parseTime = startStyleLayoutTime - startParseTime;
+    rawTimes[i].styleLayoutTime = startPaintTime - startStyleLayoutTime;
+    rawTimes[i].paintTime = endPaintTime - startPaintTime;
 
     if (debugTimestamps) {
       performance.mark(`${snippets[i].name} - startParse`, {startTime: startParseTime});
@@ -118,39 +134,68 @@ function shuffleArray(array) {
   }
 }
 
-// Return an array of `Times` where each entry corresponds to a name from
-// `orderedName`, and the sum of all times with the same name.
-function sumTimes(times, orderedNames) {
+// Return an array of `TimeStats` where each entry corresponds to stats from
+// `orderedNames`.
+function getTimeStats(snippets, rawTimes, orderedNames) {
+  function totalTime(times) {
+    return times.parseTime + times.styleLayoutTime + times.paintTime;
+  }
+
   const sumByName = {};
-  times.forEach(times => {
-    if (!sumByName[times.name]) {
-      sumByName[times.name] = {
+  for (let i = 0; i < snippets.length; i++) {
+    let name = snippets[i].name;
+    if (!sumByName[name]) {
+      sumByName[name] = {
         count: 0,
         parseTime: 0,
         styleLayoutTime: 0,
-        paintTime: 0
+        paintTime: 0,
+        totalTime: 0
       };
     }
-    sumByName[times.name].count++;
-    sumByName[times.name].parseTime += times.parseTime;
-    sumByName[times.name].styleLayoutTime += times.styleLayoutTime;
-    sumByName[times.name].paintTime += times.paintTime;
-  });
+    sumByName[name].count++;
+    sumByName[name].parseTime += rawTimes[i].parseTime;
+    sumByName[name].styleLayoutTime += rawTimes[i].styleLayoutTime;
+    sumByName[name].paintTime += rawTimes[i].paintTime;
+    sumByName[name].totalTime += totalTime(rawTimes[i]);
+  }
 
-  const outputTimes = [];
+  const snippetTimeStats = [];
   orderedNames.forEach(name => {
-    times = new Times(name);
+    let timeStats = new TimeStats(name);
     let sum = sumByName[name];
-    times.parseTime = sum.parseTime / sum.count;
-    times.styleLayoutTime = sum.styleLayoutTime / sum.count;
-    times.paintTime = sum.paintTime / sum.count;
-    outputTimes.push(times);
+    timeStats.parseTimeAvg = sum.parseTime / sum.count;
+    timeStats.styleLayoutTimeAvg = sum.styleLayoutTime / sum.count;
+    timeStats.paintTimeAvg = sum.paintTime / sum.count;
+    timeStats.totalTimeAvg = sum.totalTime / sum.count;
+
+    // Calculate variances
+    let parseTimeVariance = 0;
+    let styleLayoutTimeVariance = 0;
+    let paintTimeVariance = 0;
+    let totalTimeVariance = 0;
+    for (let i = 0; i < snippets.length; i++) {
+      if (snippets[i].name === name) {
+        parseTimeVariance += Math.pow(rawTimes[i].parseTime - timeStats.parseTimeAvg, 2);
+        styleLayoutTimeVariance += Math.pow(rawTimes[i].styleLayoutTime - timeStats.styleLayoutTimeAvg, 2);
+        paintTimeVariance += Math.pow(rawTimes[i].paintTime - timeStats.paintTimeAvg, 2);
+        totalTimeVariance += Math.pow(totalTime(rawTimes[i]) - timeStats.totalTimeAvg, 2);
+      }
+    }
+
+    // Calculate standard deviations
+    timeStats.parseTimeStdDev = Math.sqrt(parseTimeVariance / snippets.length);
+    timeStats.styleLayoutTimeStdDev = Math.sqrt(styleLayoutTimeVariance / snippets.length);
+    timeStats.paintTimeStdDev = Math.sqrt(paintTimeVariance / snippets.length);
+    timeStats.totalTimeStdDev = Math.sqrt(totalTimeVariance / snippets.length);
+
+    snippetTimeStats.push(timeStats);
   });
-  return outputTimes;
+  return snippetTimeStats;
 }
 
 export {
   benchmark,
   Snippet,
-  Times,
+  TimeStats,
 };

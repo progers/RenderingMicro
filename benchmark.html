@@ -54,7 +54,7 @@
   <div id="results"></div>
 
   <script type="module">
-    import { benchmark, Snippet, Times } from './src/runner.js';
+    import { benchmark, Snippet, TimeStats } from './src/runner.js';
 
     onload = () => {
       input.addEventListener('input', () => {
@@ -88,15 +88,21 @@
     }
 
     async function runBenchmark() {
-      let resultTimes = await benchmark(getSnippets(), results);
+      let snippetStats = await benchmark(getSnippets(), results);
+      function format(num) {
+        return parseFloat(num.toFixed(2));
+      }
 
       results.innerHTML = '';
-      for (const times of resultTimes) {
-        let total = times.parseTime + times.styleLayoutTime + times.paintTime;
-        results.innerHTML += `<b>${times.name}: ${parseFloat(total.toFixed(3))} ms</b>:<br>`;
-        results.innerHTML += `  parse: ${parseFloat(times.parseTime.toFixed(3))} ms<br>`;
-        results.innerHTML += `  styleLayout: ${parseFloat(times.styleLayoutTime.toFixed(3))} ms<br>`;
-        results.innerHTML += `  paint: ${parseFloat(times.paintTime.toFixed(3))} ms<br><br>`;
+      for (const stats of snippetStats) {
+        results.innerHTML += `<b>${stats.name}: ${format(stats.totalTimeAvg)} ms</b>
+          (stddev: ${format(stats.totalTimeStdDev)} ms):<br>`;
+        results.innerHTML += `  parse avg: ${format(stats.parseTimeAvg)} ms
+          (stddev: ${format(stats.parseTimeStdDev)} ms)<br>`;
+        results.innerHTML += `  styleLayout avg: ${format(stats.styleLayoutTimeAvg)} ms
+          (stddev: ${format(stats.styleLayoutTimeStdDev)} ms)<br>`;
+        results.innerHTML += `  paint avg: ${format(stats.paintTimeAvg)} ms
+          (stddev: ${format(stats.paintTimeStdDev)} ms)<br><br>`;
       }
     }
 
