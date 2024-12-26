@@ -53,7 +53,9 @@
   <h2>Results</h2>
   <div id="results"></div>
 
-  <script>
+  <script type="module">
+    import { benchmark, Snippet, Times } from './src/runner.js';
+
     onload = () => {
       input.addEventListener('input', () => {
         updatePreviewContent();
@@ -61,23 +63,22 @@
       });
 
       run.addEventListener('click', () => {
-        runTests();
+        runBenchmark();
       });
 
       showTimerQuantizationWarningIfNeeded();
 
-      // If set, use the window location hash for testcases. Otherwise, use a
-      // set of predefined examples.
+      // If set, use the window location hash for snippets. Otherwise, use a set
+      // of predefined examples.
       const hash = window.location.hash.substring(1);
-      input.value = hash ? atob(hash) : exampleTestcases.trim();
+      input.value = hash ? atob(hash) : examples.trim();
       updatePreviewContent();
     }
 
     function updatePreviewContent() {
       previewContent.innerHTML = '';
-      for (const testcase of getTestcases(1)) {
-        previewContent.innerHTML += `<h4>${testcase.name}</h4>${testcase.html}`;
-      }
+      for (const snippet of getSnippets())
+        previewContent.innerHTML += `<h4>${snippet.name}</h4>${snippet.html}`;
     }
 
     function updateUrlHashForSharing() {
@@ -86,124 +87,27 @@
       window.history.replaceState({}, '', newURL);
     }
 
-    class Testcase {
-      constructor(name, html) {
-        this.name = name;
-        this.html = html;
+    async function runBenchmark() {
+      let resultTimes = await benchmark(getSnippets(), results);
 
-        this.parseTime = 0;
-        this.styleLayoutTime = 0;
-        this.paintTime = 0;
+      results.innerHTML = '';
+      for (const times of resultTimes) {
+        let total = times.parseTime + times.styleLayoutTime + times.paintTime;
+        results.innerHTML += `<b>${times.name}: ${parseFloat(total.toFixed(3))} ms</b>:<br>`;
+        results.innerHTML += `  parse: ${parseFloat(times.parseTime.toFixed(3))} ms<br>`;
+        results.innerHTML += `  styleLayout: ${parseFloat(times.styleLayoutTime.toFixed(3))} ms<br>`;
+        results.innerHTML += `  paint: ${parseFloat(times.paintTime.toFixed(3))} ms<br><br>`;
       }
     }
 
-    async function waitForFrame() {
-      return new Promise(requestAnimationFrame);
-    }
-
-    async function waitForTimeout(t = 0) {
-      return new Promise((resolve, reject) => setTimeout(resolve, t))
-    }
-
-    async function runTests() {
-      const testRepeat = 10;
-      const testcases = getTestcases(testRepeat);
-      shuffleArray(testcases); // Randomize the testcase order.
-
-      const debugTimestamps = true;
-
-      // TODO: Ensure the rest of the DOM isn't affecting this.
-      const bench = document.createElement('div');
-      results.replaceChildren(bench);
-
-      // TODO: Add warmup.
-
-      let startParseTime = 0;
-      let startStyleLayoutTime = 0;
-      let startPaintTime = 0;
-      let endPaintTime = 0;
-
-      // Wait for quiescence.
-      await waitForTimeout(200);
-
-      for (const testcase of testcases) {
-        bench.innerHTML = '';
-        // Give gc a chance between repeats.
-        await waitForTimeout(20);
-        await waitForFrame();
-        await waitForFrame();
-
-        startParseTime = performance.now();
-        bench.innerHTML = testcase.html;
-        startStyleLayoutTime = performance.now();
-        bench.offsetWidth; // force layout.
-        startPaintTime = performance.now();
-        await waitForTimeout();
-        endPaintTime = performance.now();
-
-        testcase.parseTime = startStyleLayoutTime - startParseTime;
-        testcase.styleLayoutTime = startPaintTime - startStyleLayoutTime;
-        testcase.paintTime = endPaintTime - startPaintTime;
-
-        if (debugTimestamps) {
-          performance.mark(`${testcase.name} - startParse`, {startTime: startParseTime});
-          performance.mark(`startStyleLayout`, {startTime: startStyleLayoutTime});
-          performance.mark(`startPaintTime`, {startTime: startPaintTime});
-          performance.mark(`endPaintTime`, {startTime: endPaintTime});
-        }
-      }
-
-      results.innerHTML = summarizeResults(testcases);
-    }
-
-    function summarizeResults(testcases) {
-      let results = '';
-      const totals = testcases.reduce((acc, curr) => {
-        acc[curr.name] = acc[curr.name] || {parse: 0, styleLayout: 0, paint: 0, total: 0, count: 0};
-        acc[curr.name].parse += curr.parseTime;
-        acc[curr.name].styleLayout += curr.styleLayoutTime;
-        acc[curr.name].paint += curr.paintTime;
-        acc[curr.name].total += curr.parseTime + curr.styleLayoutTime + curr.paintTime;
-        acc[curr.name].count++;
-        return acc;
-      }, {});
-
-      // Use `getTestcases` for the names to preserve the original order, as the
-      // tests may have been shuffled.
-      for (const testcase of getTestcases(1)) {
-        let name = testcase.name;
-        let total = totals[name];
-        results += `<b>${name}: ${parseFloat((total.total / total.count).toFixed(3))} ms</b>:<br>`;
-        results += `  parse: ${parseFloat((total.parse / total.count).toFixed(3))} ms<br>`;
-        results += `  styleLayout: ${parseFloat((total.styleLayout / total.count).toFixed(3))} ms<br>`;
-        results += `  paint: ${parseFloat((total.paint / total.count).toFixed(3))} ms<br><br>`;
-      }
-      return results;
-    }
-
-    // Parse testcases from #input and return an array of |repeatCount| unique
-    // testcases, where a testcase is made unique by replacing all instances of
-    // the name in the html with "name_" and a unique id.
-    function getTestcases(repeatCount) {
-      let testcases = [];
-
+    // Return an array of `Snippet`s from #input.
+    function getSnippets() {
+      let snippets = [];
       let scratch = document.createElement('div');
       scratch.innerHTML = input.value;
-
-      // Use an incrementing int from local storage as part of the unique id.
-      // This breaks some page-level caches (e.g., svg image caching in chrome).
-      let noCacheInt = parseInt(localStorage.getItem('noCacheInt') || 1004);
-      localStorage.setItem('noCacheInt', ++noCacheInt);
-
-      for (const div of scratch.querySelectorAll('testcase')) {
-        for (let i = 0; i < repeatCount; i++) {
-          let name = div.getAttribute('name');
-          let uniqueName = `${name}_${i}_${noCacheInt}`;
-          let uniqueHtml = div.innerHTML.replaceAll(name, uniqueName);
-          testcases.push(new Testcase(name, uniqueHtml));
-        }
-      }
-      return testcases;
+      for (const div of scratch.querySelectorAll('snippet'))
+        snippets.push(new Snippet(div.getAttribute('name'), div.innerHTML));
+      return snippets;
     }
 
     function showTimerQuantizationWarningIfNeeded() {
@@ -213,16 +117,8 @@
       }
     }
 
-    // https://en.wikipedia.org/wiki/Fisher%E2%80%93Yates_shuffle
-    function shuffleArray(array) {
-      for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [array[i], array[j]] = [array[j], array[i]];
-      }
-    }
-
-    const exampleTestcases = `
-<testcase name="svg-image">
+    const examples = `
+<snippet name="svg-image">
   <style>
     .svg-image {
       display: inline-block;
@@ -232,9 +128,9 @@
     }
   </style>
   <div class="svg-image"></div>
-</testcase>
+</snippet>
 
-<testcase name="inline-svg">
+<snippet name="inline-svg">
   <style>
     .inline-svg {
       display: inline-block;
@@ -246,9 +142,9 @@
   <svg class="inline-svg" focusable="false" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
     <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"></path>
   </svg>
-</testcase>
+</snippet>
 
-<testcase name="css-clip-path">
+<snippet name="css-clip-path">
   <style>
     .css-clip-path {
       clip-path: path('M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z');
@@ -259,7 +155,7 @@
     }
   </style>
   <div class="css-clip-path"></div>
-</testcase>`;
+</snippet>`;
   </script>
 </body>
 </html>
