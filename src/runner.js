@@ -33,7 +33,7 @@ class TimeStats {
 
 // Benchmark each Snippet in `inputSnippets`, returning `SnippetTimesAndStats`
 // for each.
-async function benchmark(inputSnippets, benchmarkContainer) {
+async function benchmark(inputSnippets, container) {
   const repeatCount = 20;
 
   const snippets = generateUnique(inputSnippets, repeatCount);
@@ -43,20 +43,16 @@ async function benchmark(inputSnippets, benchmarkContainer) {
   for (const snippet of snippets)
     rawTimes.push(new RawTimes());
 
-  // TODO: Ensure the rest of the DOM isn't affecting this.
-  const benchDiv = document.createElement('div');
-  benchmarkContainer.replaceChildren(benchDiv);
-
   // TODO: Add warmup.
 
-  await benchmarkInternal(snippets, rawTimes, benchDiv);
+  await benchmarkInternal(snippets, rawTimes, container);
 
   // The test names were shuffled, so use the original order from inputSnippets.
   const names = inputSnippets.map(snippet => snippet.name);
   return getTimeStats(snippets, rawTimes, names);
 }
 
-async function benchmarkInternal(snippets, rawTimes, benchDiv) {
+async function benchmarkInternal(snippets, rawTimes, container) {
   let startParseTime = 0;
   let startStyleLayoutTime = 0;
   let startPaintTime = 0;
@@ -67,7 +63,7 @@ async function benchmarkInternal(snippets, rawTimes, benchDiv) {
 
   for (let i = snippets.length - 1; i >= 0; i--) {
     // Reset the test, and wait a full frame for this to render.
-    benchDiv.innerHTML = '';
+    container.innerHTML = '';
     await waitForFrame();
     await waitForTimeout();
 
@@ -75,9 +71,9 @@ async function benchmarkInternal(snippets, rawTimes, benchDiv) {
     await waitForFrame();
 
     startParseTime = performance.now();
-    benchDiv.innerHTML = snippets[i].html;
+    container.innerHTML = snippets[i].html;
     startStyleLayoutTime = performance.now();
-    benchDiv.offsetWidth; // force layout.
+    container.offsetWidth; // force layout.
     startPaintTime = performance.now();
     await waitForTimeout();
     endPaintTime = performance.now();

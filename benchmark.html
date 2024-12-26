@@ -2,56 +2,58 @@
 <html>
 <head>
   <title>Rendering Micro Benchmark</title>
-  <style>
-    body {
-      font-family: sans-serif;
-    }
-    #container {
-      display: flex;
-    }
-    #input, #preview {
-      width: 50%;
-      padding: 10px;
-      border: 1px solid #ccc;
-    }
-    #input {
-      white-space: pre;
-      overflow-x: auto;
-    }
-    #preview {
-      background-color: #f5f5f5;
-    }
-    #previewTitle {
-      margin-bottom: 5px;
-    }
-    #run {
-      margin: 10px 0;
-      padding: 8px 16px;
-    }
-    .warning {
-      padding: 10px;
-      background: orange;
-      color: white;
-      margin-bottom: 15px;
-    }
-  </style>
 </head>
 <body>
-  <h1>Rendering Micro Benchmark</h1>
-  <p>Enter HTML snippets below to benchmark their performance.</p>
+  <div id="benchmarkContainer">
+    <style>
+      body {
+        font-family: sans-serif;
+      }
+      #container {
+        display: flex;
+      }
+      #input, #preview {
+        width: 50%;
+        padding: 10px;
+        border: 1px solid #ccc;
+      }
+      #input {
+        white-space: pre;
+        overflow-x: auto;
+      }
+      #preview {
+        background-color: #f5f5f5;
+      }
+      #previewTitle {
+        margin-bottom: 5px;
+      }
+      #run {
+        margin: 10px 0;
+        padding: 8px 16px;
+      }
+      .warning {
+        padding: 10px;
+        background: orange;
+        color: white;
+        margin-bottom: 15px;
+      }
+    </style>
+    <h1>Rendering Micro Benchmark</h1>
+    <p>Enter HTML snippets below to benchmark their performance.</p>
 
-  <div id="container">
-    <textarea id="input" rows="10"></textarea>
-    <div id="preview">
-      <h2>Preview</h2>
-      <div id="previewContent"></div>
+    <div id="container">
+      <textarea id="input" rows="10"></textarea>
+      <div id="preview">
+        <h2>Preview</h2>
+        <div id="previewContent"></div>
+      </div>
     </div>
+
+    <button id="run">Run Benchmark</button>
+
+    <h2>Results</h2>
+    <div id="results"></div>
   </div>
-
-  <button id="run">Run Benchmark</button>
-
-  <h2>Results</h2>
-  <div id="results"></div>
 
   <script type="module">
     import { benchmark, Snippet, TimeStats } from './src/runner.js';
@@ -88,22 +90,27 @@
     }
 
     async function runBenchmark() {
-      let snippetStats = await benchmark(getSnippets(), results);
-      function format(num) {
-        return parseFloat(num.toFixed(2));
-      }
+      const snippets = getSnippets();
+      let benchmarkContainer = document.getElementById('benchmarkContainer');
+      document.body.removeChild(benchmarkContainer);
 
-      results.innerHTML = '';
+      let snippetStats = await benchmark(snippets, document.body);
+
+      document.body.replaceChildren(benchmarkContainer);
+
+      let resultsText = '';
+      function format(num) { return parseFloat(num.toFixed(2)); }
       for (const stats of snippetStats) {
-        results.innerHTML += `<b>${stats.name}: ${format(stats.totalTimeAvg)} ms</b>
+        resultsText += `<b>${stats.name}: ${format(stats.totalTimeAvg)} ms</b>
           (stddev: ${format(stats.totalTimeStdDev)} ms):<br>`;
-        results.innerHTML += `  parse avg: ${format(stats.parseTimeAvg)} ms
+        resultsText += `  parse avg: ${format(stats.parseTimeAvg)} ms
           (stddev: ${format(stats.parseTimeStdDev)} ms)<br>`;
-        results.innerHTML += `  styleLayout avg: ${format(stats.styleLayoutTimeAvg)} ms
+        resultsText += `  styleLayout avg: ${format(stats.styleLayoutTimeAvg)} ms
           (stddev: ${format(stats.styleLayoutTimeStdDev)} ms)<br>`;
-        results.innerHTML += `  paint avg: ${format(stats.paintTimeAvg)} ms
+        resultsText += `  paint avg: ${format(stats.paintTimeAvg)} ms
           (stddev: ${format(stats.paintTimeStdDev)} ms)<br><br>`;
       }
+      results.innerHTML = resultsText;
     }
 
     // Return an array of `Snippet`s from #input.
