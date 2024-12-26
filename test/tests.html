@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+  <h1>Rendering Micro Benchmark Tests</h1>
+
+  <div id='results'></div>
+
+  <script type='module'>
+    import { benchmark, Snippet, TimeStats, TestInternals } from '../src/runner.js';
+    const { getTimeStats, RawTimes } = TestInternals;
+
+    function runTest(testName, testFunction) {
+      try {
+        testFunction();
+        results.innerHTML += '<p>' + testName + ': PASS</p>';
+      } catch (error) {
+        results.innerHTML += '<p>' + testName + ': FAIL - ' + error.message + '</p>';
+      }
+    }
+
+    function assertEquals(expected, actual, message) {
+      if (expected !== actual) {
+        // If a message is not provided, create a default one.
+        const errorMessage = message || `Expected ${expected}, but got ${actual}`;
+        throw new Error(errorMessage);
+      }
+    }
+
+    runTest('Basic average statistics, two snippets', function() {
+      let snippets = [
+        new Snippet('test-a', '<test-a/>'),
+        new Snippet('test-b', '<test-b/>'),
+      ];
+      let rawTimes = [new RawTimes(), new RawTimes()];
+      rawTimes[0].parseTime = 5;
+      rawTimes[0].styleLayoutTime = 6;
+      rawTimes[0].paintTime = 7;
+
+      rawTimes[1].parseTime = 2;
+      rawTimes[1].styleLayoutTime = 2;
+      rawTimes[1].paintTime = 2;
+
+      let timeStats = getTimeStats(snippets, rawTimes, ['test-a', 'test-b']);
+      assertEquals('test-a', timeStats[0].name);
+      assertEquals(5, timeStats[0].parseTimeAvg);
+      assertEquals(6, timeStats[0].styleLayoutTimeAvg);
+      assertEquals(7, timeStats[0].paintTimeAvg);
+      assertEquals(18, timeStats[0].totalTimeAvg);
+
+      assertEquals('test-b', timeStats[1].name);
+      assertEquals(2, timeStats[1].parseTimeAvg);
+      assertEquals(2, timeStats[1].styleLayoutTimeAvg);
+      assertEquals(2, timeStats[1].paintTimeAvg);
+      assertEquals(6, timeStats[1].totalTimeAvg);
+    });
+
+    runTest('Basic stddev statistics, two snippets', function() {
+      let snippets = [
+        new Snippet('test-a', '<test_a_01/>'),
+        new Snippet('test-a', '<test_a_02/>'),
+        new Snippet('test-b', '<test_b_01/>'),
+        new Snippet('test-b', '<test_b_02/>'),
+      ];
+      let rawTimes = [
+        new RawTimes(),
+        new RawTimes(),
+        new RawTimes(),
+        new RawTimes(),
+      ];
+      rawTimes[0].parseTime = 3;
+      rawTimes[0].styleLayoutTime = 3;
+      rawTimes[0].paintTime = 3;
+
+      rawTimes[1].parseTime = 5;
+      rawTimes[1].styleLayoutTime = 5;
+      rawTimes[1].paintTime = 5;
+
+      let timeStats = getTimeStats(snippets, rawTimes, ['test-a', 'test-b']);
+      assertEquals('test-a', timeStats[0].name);
+      assertEquals(4, timeStats[0].parseTimeAvg);
+      assertEquals(4, timeStats[0].styleLayoutTimeAvg);
+      assertEquals(4, timeStats[0].paintTimeAvg);
+      assertEquals(12, timeStats[0].totalTimeAvg);
+      assertEquals(1, timeStats[0].parseTimeStdDev);
+      assertEquals(1, timeStats[0].styleLayoutTimeStdDev);
+      assertEquals(1, timeStats[0].paintTimeStdDev);
+      assertEquals(3, timeStats[0].totalTimeStdDev);
+
+      assertEquals('test-b', timeStats[1].name);
+      assertEquals(0, timeStats[1].parseTimeAvg);
+      assertEquals(0, timeStats[1].styleLayoutTimeAvg);
+      assertEquals(0, timeStats[1].paintTimeAvg);
+      assertEquals(0, timeStats[1].totalTimeAvg);
+      assertEquals(0, timeStats[1].parseTimeStdDev);
+      assertEquals(0, timeStats[1].styleLayoutTimeStdDev);
+      assertEquals(0, timeStats[1].paintTimeStdDev);
+      assertEquals(0, timeStats[1].totalTimeStdDev);
+    });
+  </script>
+</body>
+</html>

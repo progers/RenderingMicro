@@ -33,7 +33,7 @@ class TimeStats {
 
 // Benchmark each Snippet in `inputSnippets`, returning `SnippetTimesAndStats`
 // for each.
-export default async function benchmark(inputSnippets, benchmarkContainer) {
+async function benchmark(inputSnippets, benchmarkContainer) {
   const repeatCount = 20;
 
   const snippets = generateUnique(inputSnippets, repeatCount);
@@ -185,10 +185,10 @@ function getTimeStats(snippets, rawTimes, orderedNames) {
     }
 
     // Calculate standard deviations
-    timeStats.parseTimeStdDev = Math.sqrt(parseTimeVariance / snippets.length);
-    timeStats.styleLayoutTimeStdDev = Math.sqrt(styleLayoutTimeVariance / snippets.length);
-    timeStats.paintTimeStdDev = Math.sqrt(paintTimeVariance / snippets.length);
-    timeStats.totalTimeStdDev = Math.sqrt(totalTimeVariance / snippets.length);
+    timeStats.parseTimeStdDev = Math.sqrt(parseTimeVariance / sum.count);
+    timeStats.styleLayoutTimeStdDev = Math.sqrt(styleLayoutTimeVariance / sum.count);
+    timeStats.paintTimeStdDev = Math.sqrt(paintTimeVariance / sum.count);
+    timeStats.totalTimeStdDev = Math.sqrt(totalTimeVariance / sum.count);
 
     snippetTimeStats.push(timeStats);
   });
@@ -199,4 +199,9 @@ export {
   benchmark,
   Snippet,
   TimeStats,
+};
+
+export const TestInternals = {
+  getTimeStats,
+  RawTimes,
 };
