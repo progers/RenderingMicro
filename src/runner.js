@@ -66,11 +66,12 @@ async function benchmarkInternal(snippets, rawTimes, benchDiv) {
   await waitForTimeout(200);
 
   for (let i = snippets.length - 1; i >= 0; i--) {
+    // Reset the test, and wait a full frame for this to render.
     benchDiv.innerHTML = '';
-
-    // Give gc a chance between repeats.
-    await waitForTimeout(20);
     await waitForFrame();
+    await waitForTimeout();
+
+    // Wait for the next frame to start, then start the real test.
     await waitForFrame();
 
     startParseTime = performance.now();
