@@ -28,17 +28,17 @@
       margin: 10px 0;
       padding: 8px 16px;
     }
-    #warnings {
-      display: none;
-      background-color: bisque;
-      border: 1px solid redbrick;
+    .warning {
+      padding: 10px;
+      background: orange;
+      color: white;
+      margin-bottom: 15px;
     }
   </style>
 </head>
 <body>
   <h1>Rendering Micro Benchmark</h1>
   <p>Enter HTML snippets below to benchmark their performance.</p>
-  <p id="warnings"></p>
 
   <div id="container">
     <textarea id="input" rows="10"></textarea>
@@ -66,13 +66,13 @@
         runBenchmark();
       });
 
-      showTimerQuantizationWarningIfNeeded();
-
       // If set, use the window location hash for snippets. Otherwise, use a set
       // of predefined examples.
       const hash = window.location.hash.substring(1);
       input.value = hash ? atob(hash) : examples.trim();
       updatePreviewContent();
+
+      checkCrossOriginIsolated();
     }
 
     function updatePreviewContent() {
@@ -110,10 +110,22 @@
       return snippets;
     }
 
-    function showTimerQuantizationWarningIfNeeded() {
+    // If the page is not loaded with cross-origin isolation headers, timer
+    // precision (performance.now(), etc.) is much worse. Below is a comparison
+    // with vs without isolation:
+    //   Chromium: 5us vs 100us
+    //   WebKit: 20us vs 1000us
+    //   Gecko: 100us vs 1000us
+    function checkCrossOriginIsolated() {
       if (!self.crossOriginIsolated) {
-        warnings.style.display = 'inline';
-        warnings.innerHTML = '<b>Warning:</b> Timer precision impacted because not <a href="https://developer.mozilla.org/en-US/docs/Web/API/Window/crossOriginIsolated">cross-origin isolated</a>. Use <code>python3 crossOriginIsolatedServer.py</code>.</p>';
+        var warning = document.createElement('div');
+        warning.classList.add('warning');
+        const crossOriginDocs =
+          'https://developer.mozilla.org/en-US/docs/Web/API/Window/crossOriginIsolated';
+        warning.innerHTML = `<b>Warning:</b> Timer precision is reduced because
+        this page is not <a href="${crossOriginDocs}">cross-origin isolated</a>.
+        Fix by using <code>python3 server.py</code>.`;
+        document.body.insertBefore(warning, document.body.firstChild);
       }
     }
 
