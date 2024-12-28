@@ -37,6 +37,13 @@
         color: white;
         margin-bottom: 15px;
       }
+      table {
+        border-collapse: collapse;
+      }
+      th, td {
+        border: 1px solid black;
+        padding: 8px;
+      }
     </style>
     <h1>Rendering Micro Benchmark</h1>
     <p>Enter HTML snippets below to benchmark their performance.</p>
@@ -52,7 +59,6 @@
     <button title="Copy a persistent URL" id="copyLink">Copy Link</button>
     <button id="run">Run Benchmark</button>
 
-    <h2>Results</h2>
     <div id="results"></div>
   </div>
 
@@ -104,20 +110,7 @@
       let snippetStats = await benchmark(snippets, document.body);
 
       document.body.replaceChildren(benchmarkContainer);
-
-      let resultsText = '';
-      function format(num) { return parseFloat(num.toFixed(2)); }
-      for (const stats of snippetStats) {
-        resultsText += `<b>${stats.name}: ${format(stats.totalTimeAvg)} ms</b>
-          (stddev: ${format(stats.totalTimeStdDev)} ms):<br>`;
-        resultsText += `  parse avg: ${format(stats.parseTimeAvg)} ms
-          (stddev: ${format(stats.parseTimeStdDev)} ms)<br>`;
-        resultsText += `  styleLayout avg: ${format(stats.styleLayoutTimeAvg)} ms
-          (stddev: ${format(stats.styleLayoutTimeStdDev)} ms)<br>`;
-        resultsText += `  paint avg: ${format(stats.paintTimeAvg)} ms
-          (stddev: ${format(stats.paintTimeStdDev)} ms)<br><br>`;
-      }
-      results.innerHTML = resultsText;
+      results.innerHTML = formatResults(snippetStats);
     }
 
     // Return an array of `Snippet`s from #input.
@@ -147,6 +140,44 @@
         Fix by using <code>python3 server.py</code>.`;
         document.body.insertBefore(warning, document.body.firstChild);
       }
+    }
+
+    function formatResults(snippetStats) {
+      function formatNumber(num) { return parseFloat(num.toFixed(2)); }
+      let resultsHtml = `<h2>Results</h2>
+        <table>
+          <tr>
+            <th rowspan="2">Snippet Name</th>
+            <th colspan="2">Total Time (ms)</th>
+            <th colspan="2">Parse Time (ms)</th>
+            <th colspan="2">Style/Layout Time (ms)</th>
+            <th colspan="2">Paint Time (ms)</th>
+          </tr>
+          <tr>
+            <th>Avg</th>
+            <th>Std Dev</th>
+            <th>Avg</th>
+            <th>Std Dev</th>
+            <th>Avg</th>
+            <th>Std Dev</th>
+            <th>Avg</th>
+            <th>Std Dev</th>
+          </tr>`;
+      for (const stats of snippetStats) {
+        resultsHtml += `<tr>
+          <td>${stats.name}</td>
+          <td>${formatNumber(stats.totalTimeAvg)}</td>
+          <td>${formatNumber(stats.totalTimeStdDev)}</td>
+          <td>${formatNumber(stats.parseTimeAvg)}</td>
+          <td>${formatNumber(stats.parseTimeStdDev)}</td>
+          <td>${formatNumber(stats.styleLayoutTimeAvg)}</td>
+          <td>${formatNumber(stats.styleLayoutTimeStdDev)}</td>
+          <td>${formatNumber(stats.paintTimeAvg)}</td>
+          <td>${formatNumber(stats.paintTimeStdDev)}</td>
+        </tr>`;
+      }
+      resultsHtml += `</table>`;
+      return resultsHtml;
     }
 
     const examples = `
