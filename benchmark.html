@@ -27,7 +27,7 @@
       #previewTitle {
         margin-bottom: 5px;
       }
-      #run {
+      button {
         margin: 10px 0;
         padding: 8px 16px;
       }
@@ -49,6 +49,7 @@
       </div>
     </div>
 
+    <button title="Copy a persistent URL" id="copyLink">Copy Link</button>
     <button id="run">Run Benchmark</button>
 
     <h2>Results</h2>
@@ -61,17 +62,29 @@
     onload = () => {
       input.addEventListener('input', () => {
         updatePreviewContent();
-        updateUrlHashForSharing();
       });
 
       run.addEventListener('click', () => {
         runBenchmark();
       });
 
-      // If set, use the window location hash for snippets. Otherwise, use a set
-      // of predefined examples.
-      const hash = window.location.hash.substring(1);
-      input.value = hash ? atob(hash) : examples.trim();
+      // Generate a persistent url with the current snippets as a url param.
+      copyLink.addEventListener('click', () => {
+        const copyUrl = new URL(window.location.href);
+        copyUrl.searchParams.set('snippets', encodeURIComponent(input.value));
+        navigator.clipboard.writeText(copyUrl.toString());
+      });
+
+      // If set, use the `snippets` url parameter for snippets. Otherwise, use a
+      // set of predefined examples.
+      const currentURL = new URL(window.location.href);
+      const currentSnippets = currentURL.searchParams.get('snippets');
+      if (currentSnippets) {
+        input.value = decodeURIComponent(currentSnippets);
+      } else {
+        input.value = examples.trim();
+      }
+
       updatePreviewContent();
 
       checkCrossOriginIsolated();
@@ -81,12 +94,6 @@
       previewContent.innerHTML = '';
       for (const snippet of getSnippets())
         previewContent.innerHTML += `<h4>${snippet.name}</h4>${snippet.html}`;
-    }
-
-    function updateUrlHashForSharing() {
-      const encodedHTML = btoa(input.value);
-      const newURL = window.location.origin + window.location.pathname + '#' + encodedHTML;
-      window.history.replaceState({}, '', newURL);
     }
 
     async function runBenchmark() {
