@@ -61,7 +61,7 @@ async function benchmarkInternal(snippets, rawTimes, container) {
   // Wait for quiescence.
   await waitForTimeout(200);
 
-  for (let i = snippets.length - 1; i >= 0; i--) {
+  for (let i = 0; i < snippets.length; i++) {
     // Reset the test, and wait a full frame for this to render.
     container.innerHTML = '';
     await waitForFrame();
