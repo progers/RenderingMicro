@@ -68,6 +68,7 @@
     onload = () => {
       input.addEventListener('input', () => {
         updatePreviewContent();
+        updateSnippetWarnings();
       });
 
       run.addEventListener('click', () => {
@@ -92,7 +93,7 @@
       }
 
       updatePreviewContent();
-
+      updateSnippetWarnings();
       checkCrossOriginIsolated();
     }
 
@@ -105,7 +106,7 @@
     async function runBenchmark() {
       const snippets = getSnippets();
       let benchmarkContainer = document.getElementById('benchmarkContainer');
-      document.body.removeChild(benchmarkContainer);
+      benchmarkContainer.remove();
 
       let snippetStats = await benchmark(snippets, document.body);
 
@@ -123,6 +124,39 @@
       return snippets;
     }
 
+    // Shows or hides a warning with `id`.
+    function updateWarning(show, id, message) {
+      let element = document.getElementById(id);
+      if (show) {
+        if (!element) {
+          element = document.createElement('div');
+          element.id = id;
+          element.classList.add('warning');
+          benchmarkContainer.prepend(element);
+        }
+        element.innerHTML = `<b>Warning:</b> ${message}`;
+      } else if (element) {
+        element.remove();
+      }
+    }
+
+    // Show warnings for snippet issues.
+    function updateSnippetWarnings() {
+      let showMissingName = false;
+      let showMissingIncludeName = false;
+      for (const snippet of getSnippets()) {
+        if (!snippet.name) {
+          showMissingName = true;
+        } else if (!snippet.html.includes(snippet.name)) {
+          showMissingIncludeName = true;
+        }
+      }
+      updateWarning(showMissingName, 'missing-name-warning', `Missing
+        <code>name</code> attribute on &lt;snippet>.`);
+      updateWarning(showMissingIncludeName, 'missing-include-name-warning', `To
+        prevent caching, &lt;snippet> contents must contain the snippet name.`);
+    }
+
     // If the page is not loaded with cross-origin isolation headers, timer
     // precision (performance.now(), etc.) is much worse. Below is a comparison
     // with vs without isolation:
@@ -130,16 +164,10 @@
     //   WebKit: 20us vs 1000us
     //   Gecko: 100us vs 1000us
     function checkCrossOriginIsolated() {
-      if (!self.crossOriginIsolated) {
-        var warning = document.createElement('div');
-        warning.classList.add('warning');
-        const crossOriginDocs =
-          'https://developer.mozilla.org/en-US/docs/Web/API/Window/crossOriginIsolated';
-        warning.innerHTML = `<b>Warning:</b> Timer precision is reduced because
-        this page is not <a href="${crossOriginDocs}">cross-origin isolated</a>.
-        Fix by using <code>python3 server.py</code>.`;
-        document.body.insertBefore(warning, document.body.firstChild);
-      }
+      updateWarning(!self.crossOriginIsolated, 'isolated-warning', `Timer
+        precision is reduced because this page is not
+        <a href="https://mdn.io/crossOriginIsolated">cross-origin isolated</a>.
+        Fix by using <code>python3 server.py</code>.`);
     }
 
     function formatResults(snippetStats) {
