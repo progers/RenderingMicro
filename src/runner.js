@@ -32,7 +32,7 @@ class TimeStats {
 // Benchmark each Snippet in `inputSnippets`, returning `SnippetTimesAndStats`
 // for each.
 async function benchmark(inputSnippets, container) {
-  // Selected using tests/experients/repeat_count.html.
+  // Selected using tests/experiments/repeat_count.html.
   const repeatCount = 50;
 
   const snippets = generateUnique(inputSnippets, repeatCount);
