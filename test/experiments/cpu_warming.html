@@ -63,14 +63,14 @@
     for (const [i, test] of tests.entries()) {
       const stat = getTimeStats(snippetsMap[i], rawTimesMap[i], [test])[0];
       statsHtml += '<br>' + test;
-      statsHtml += ', ' + formatNumber(stat.parseTimeAvg);
-      statsHtml += ', ' + formatNumber(stat.styleLayoutTimeAvg);
-      statsHtml += ', ' + formatNumber(stat.paintTimeAvg);
-      statsHtml += ', ' + formatNumber(stat.totalTimeAvg);
-      statsHtml += ', ' + formatNumber(stat.parseTimeStdDev);
-      statsHtml += ', ' + formatNumber(stat.styleLayoutTimeStdDev);
-      statsHtml += ', ' + formatNumber(stat.paintTimeStdDev);
-      statsHtml += ', ' + formatNumber(stat.totalTimeStdDev);
+      statsHtml += ',' + formatNumber(stat.parseTimeAvg);
+      statsHtml += ',' + formatNumber(stat.styleLayoutTimeAvg);
+      statsHtml += ',' + formatNumber(stat.paintTimeAvg);
+      statsHtml += ',' + formatNumber(stat.totalTimeAvg);
+      statsHtml += ',' + formatNumber(stat.parseTimeStdDev);
+      statsHtml += ',' + formatNumber(stat.styleLayoutTimeStdDev);
+      statsHtml += ',' + formatNumber(stat.paintTimeStdDev);
+      statsHtml += ',' + formatNumber(stat.totalTimeStdDev);
     }
     results.innerHTML = statsHtml;
 
@@ -83,9 +83,9 @@
       rawStyleLayoutTimesHtml += '<br>' + test;
       rawPaintTimesHtml += '<br>' + test;
       for (const [snippetIndex, snippet] of snippetsMap[i].entries()) {
-        rawParseTimesHtml += ', ' + formatNumber(rawTimesMap[i][snippetIndex].parseTime);
-        rawStyleLayoutTimesHtml += ', ' + formatNumber(rawTimesMap[i][snippetIndex].styleLayoutTime);
-        rawPaintTimesHtml += ', ' + formatNumber(rawTimesMap[i][snippetIndex].paintTime);
+        rawParseTimesHtml += ',' + formatNumber(rawTimesMap[i][snippetIndex].parseTime);
+        rawStyleLayoutTimesHtml += ',' + formatNumber(rawTimesMap[i][snippetIndex].styleLayoutTime);
+        rawPaintTimesHtml += ',' + formatNumber(rawTimesMap[i][snippetIndex].paintTime);
       }
     }
     results.innerHTML += '<br><br>' + rawParseTimesHtml;
