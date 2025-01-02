@@ -32,7 +32,8 @@ class TimeStats {
 // Benchmark each Snippet in `inputSnippets`, returning `SnippetTimesAndStats`
 // for each.
 async function benchmark(inputSnippets, container) {
-  const repeatCount = 20;
+  // Selected using tests/experients/repeat_count.html.
+  const repeatCount = 50;
 
   const snippets = generateUnique(inputSnippets, repeatCount);
   shuffleArray(snippets); // Randomize the order.
@@ -61,6 +62,9 @@ async function benchmarkInternal(snippets, rawTimes, container, debugTimestamps 
   window.shouldKeepCpuWarm = keepWarm;
   if (keepWarm) {
     keepCpuWarm();
+    // Wait for warmup. This reduces lower initial-run performance, as seen on
+    // tests/experiments/repeat_count.html.
+    await waitForTimeout(100);
   }
 
   for (let i = 0; i < snippets.length; i++) {
