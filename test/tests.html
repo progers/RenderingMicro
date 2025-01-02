@@ -1,12 +1,10 @@
 <!DOCTYPE html>
 <html>
 <body>
-
   <h1>Rendering Micro Benchmark Tests</h1>
+  <div id="results"></div>
 
-  <div id='results'></div>
-
-  <script type='module'>
+  <script type="module">
     import { benchmark, Snippet, TimeStats, TestInternals } from '../src/runner.js';
     const { getTimeStats, RawTimes } = TestInternals;
 
