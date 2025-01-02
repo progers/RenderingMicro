@@ -64,7 +64,7 @@ async function benchmarkInternal(snippets, rawTimes, container, debugTimestamps 
     keepCpuWarm();
     // Wait for warmup. This reduces lower initial-run performance, as seen on
     // tests/experiments/repeat_count.html.
-    await waitForTimeout(100);
+    await waitForTimeout(250);
   }
 
   for (let i = 0; i < snippets.length; i++) {
