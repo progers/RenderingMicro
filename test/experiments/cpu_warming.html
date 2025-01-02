@@ -1,0 +1,96 @@
+<!doctype html>
+<!--
+  This experiment demonstrates the effect of the keepWarm parameter, which keeps
+  the cpu power states high when running the benchmark. Run in each browser and
+  import into Google Sheets with Edit>Paste Special>CSV as columns.
+
+  Chrome Canary M133: -41.9% time, -57.0% stddev
+  Safari TP18.2: -56.0% time, -78.0% stddev
+  Firefox Nightly 135: -50.6% time, -88.3% stddev
+  https://docs.google.com/spreadsheets/d/1AkHgdly_9skHjUaprWnYD6IQD7CE5kqZGo8f8KzkOJs/edit?usp=sharing
+-->
+<html>
+<body>
+  <div id="results"></div>
+
+  <script type="module">
+    import { benchmark, Snippet, TimeStats, TestInternals } from '../../src/runner.js';
+    const { getTimeStats, benchmarkInternal, generateUnique, RawTimes } = TestInternals;
+
+    async function waitForTimeout(t = 0) {
+      return new Promise((resolve, reject) => setTimeout(resolve, t))
+    }
+
+    function formatNumber(num) {
+      return parseFloat(num.toFixed(2));
+    }
+
+    // Configuration.
+    let tests = ['cold-1', 'warm-1', 'cold-2', 'warm-2', 'cold-3', 'warm-3'];
+    let repeats = 1000;
+
+    // Setup the tests in `snippetsMap` and `rawTimesMap`.
+    let snippetsMap = {};
+    let rawTimesMap = {};
+    for (const [i, test] of tests.entries()) {
+      let inputSnippet = [new Snippet(test,
+        `<style>
+          .${test} {
+            display: inline-block;
+            height: 24px;
+            width: 24px;
+            background-image: url('data:image/svg+xml,<svg uinqueid="${test}" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23747878" d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"></path></svg>');
+          }
+        </style>
+        <div class="${test}"></div>`)];
+      snippetsMap[i] = generateUnique(inputSnippet, repeats);
+      // No need to shuffle since we only have a single snippet.
+      let rawTimes = [];
+      for (const snippet of snippetsMap[i])
+        rawTimes.push(new RawTimes());
+      rawTimesMap[i] = rawTimes;
+    }
+
+    // Run the benchmark.
+    for (const [i, test] of tests.entries()) {
+      await waitForTimeout(1000);
+      await benchmarkInternal(snippetsMap[i], rawTimesMap[i], results, /* debugTimestamps */ false, /* keepWarm */ test.includes('warm'));
+    }
+
+    // Dump the stats for each test.
+    let statsHtml = 'Test, parseAvg, styleLayoutAvg, paintAvg, totalAvg, '
+      + 'parseStdDev, styleLayoutStdDev, paintStdDev, totalStdDev';
+    for (const [i, test] of tests.entries()) {
+      const stat = getTimeStats(snippetsMap[i], rawTimesMap[i], [test])[0];
+      statsHtml += '<br>' + test;
+      statsHtml += ', ' + formatNumber(stat.parseTimeAvg);
+      statsHtml += ', ' + formatNumber(stat.styleLayoutTimeAvg);
+      statsHtml += ', ' + formatNumber(stat.paintTimeAvg);
+      statsHtml += ', ' + formatNumber(stat.totalTimeAvg);
+      statsHtml += ', ' + formatNumber(stat.parseTimeStdDev);
+      statsHtml += ', ' + formatNumber(stat.styleLayoutTimeStdDev);
+      statsHtml += ', ' + formatNumber(stat.paintTimeStdDev);
+      statsHtml += ', ' + formatNumber(stat.totalTimeStdDev);
+    }
+    results.innerHTML = statsHtml;
+
+    // Dump the raw times for each test.
+    let rawParseTimesHtml = 'Raw Parse Times';
+    let rawStyleLayoutTimesHtml = 'Raw StyleLayout Times';
+    let rawPaintTimesHtml = 'Raw Paint Times';
+    for (const [i, test] of tests.entries()) {
+      rawParseTimesHtml += '<br>' + test;
+      rawStyleLayoutTimesHtml += '<br>' + test;
+      rawPaintTimesHtml += '<br>' + test;
+      for (const [snippetIndex, snippet] of snippetsMap[i].entries()) {
+        rawParseTimesHtml += ', ' + formatNumber(rawTimesMap[i][snippetIndex].parseTime);
+        rawStyleLayoutTimesHtml += ', ' + formatNumber(rawTimesMap[i][snippetIndex].styleLayoutTime);
+        rawPaintTimesHtml += ', ' + formatNumber(rawTimesMap[i][snippetIndex].paintTime);
+      }
+    }
+    results.innerHTML += '<br><br>' + rawParseTimesHtml;
+    results.innerHTML += '<br><br>' + rawStyleLayoutTimesHtml;
+    results.innerHTML += '<br><br>' + rawPaintTimesHtml;
+  </script>
+</body>
+</html>

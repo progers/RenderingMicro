@@ -1,5 +1,3 @@
-const debugTimestamps = true;
-
 class Snippet {
   constructor(name, html) {
     this.name = name;
@@ -43,16 +41,15 @@ async function benchmark(inputSnippets, container) {
   for (const snippet of snippets)
     rawTimes.push(new RawTimes());
 
-  // TODO: Add warmup.
-
-  await benchmarkInternal(snippets, rawTimes, container);
+  const debugTimestamps = true;
+  await benchmarkInternal(snippets, rawTimes, container, debugTimestamps);
 
   // The test names were shuffled, so use the original order from inputSnippets.
   const names = inputSnippets.map(snippet => snippet.name);
   return getTimeStats(snippets, rawTimes, names);
 }
 
-async function benchmarkInternal(snippets, rawTimes, container) {
+async function benchmarkInternal(snippets, rawTimes, container, debugTimestamps = false, keepWarm = true) {
   let startParseTime = 0;
   let startStyleLayoutTime = 0;
   let startPaintTime = 0;
@@ -60,6 +57,11 @@ async function benchmarkInternal(snippets, rawTimes, container) {
 
   // Wait for quiescence.
   await waitForTimeout(200);
+
+  window.shouldKeepCpuWarm = keepWarm;
+  if (keepWarm) {
+    keepCpuWarm();
+  }
 
   for (let i = 0; i < snippets.length; i++) {
     // Reset the test, and wait a full frame for this to render.
@@ -89,6 +91,8 @@ async function benchmarkInternal(snippets, rawTimes, container) {
       performance.mark(`endPaintTime`, {startTime: endPaintTime});
     }
   }
+
+  window.shouldKeepCpuWarm = false;
 }
 
 async function waitForFrame() {
@@ -97,6 +101,32 @@ async function waitForFrame() {
 
 async function waitForTimeout(t = 0) {
   return new Promise((resolve, reject) => setTimeout(resolve, t))
+}
+
+async function waitForPostMessage() {
+  return new Promise(resolve => {
+    window.onmessage = () => {
+      resolve();
+      window.onmessage = null;
+    };
+    window.postMessage(null, '*');
+  });
+}
+
+// Keep a busy loop of 1ms tasks running until `window.shouldKeepCpuWarm` is
+// set to false. Keeping the CPU out of idle states dramatically reduces both
+// total time and variance (see: test/experiments/cpu_warming.html).
+window.shouldKeepCpuWarm = false;
+async function keepCpuWarm() {
+  let end = performance.now() + 1;
+  let sum = 0;
+  while (performance.now() < end) {
+    sum += Math.random();
+  }
+  if (window.shouldKeepCpuWarm) {
+    await waitForPostMessage();
+    keepCpuWarm();
+  }
 }
 
 // Return an array of |snippets| * |repeatCount| "unique" snippets, where a
@@ -199,5 +229,7 @@ export {
 
 export const TestInternals = {
   getTimeStats,
+  benchmarkInternal,
+  generateUnique,
   RawTimes,
 };
