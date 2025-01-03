@@ -217,10 +217,9 @@
 <snippet name="svg-image">
   <style>
     .svg-image {
-      display: inline-block;
-      height: 24px;
       width: 24px;
-      background-image: url('data:image/svg+xml,<svg uinqueid="svg-image" focusable="false" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="%23747878" d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"></path></svg>');
+      height: 24px;
+      background-image: url('data:image/svg+xml,<svg uinqueid="svg-image" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"></path></svg>');
     }
   </style>
   <div class="svg-image"></div>
@@ -229,13 +228,11 @@
 <snippet name="inline-svg">
   <style>
     .inline-svg {
-      display: inline-block;
-      height: 24px;
       width: 24px;
-      fill: #747878;
+      height: 24px;
     }
   </style>
-  <svg class="inline-svg" focusable="false" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <svg class="inline-svg" viewBox="0 0 24 24">
     <path d="M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z"></path>
   </svg>
 </snippet>
@@ -244,10 +241,9 @@
   <style>
     .css-clip-path {
       clip-path: path('M16.59 8.59L12 13.17 7.41 8.59 6 10l6 6 6-6z');
-      display: inline-block;
-      height: 24px;
       width: 24px;
-      background-color: #747878;
+      height: 24px;
+      background-color: black;
     }
   </style>
   <div class="css-clip-path"></div>
