@@ -53,7 +53,7 @@ async function benchmark(inputSnippets, container) {
   return getTimeStats(snippets, rawTimes, names);
 }
 
-async function benchmarkInternal(snippets, rawTimes, container, debugTimestamps = false, keepWarm = true) {
+async function benchmarkInternal(snippets, rawTimes, container, debugTimestamps = false, useCpuWarmer = true) {
   let startParseTime = 0;
   let startStyleTime = 0;
   let startLayoutTime = 0;
@@ -63,9 +63,8 @@ async function benchmarkInternal(snippets, rawTimes, container, debugTimestamps 
   // Wait for quiescence.
   await waitForTimeout(200);
 
-  window.shouldKeepCpuWarm = keepWarm;
-  if (keepWarm) {
-    keepCpuWarm();
+  if (useCpuWarmer) {
+    CpuWarmer.start();
     // Wait for warmup. This reduces lower initial-run performance, as seen on
     // tests/experiments/repeat_count.html.
     await waitForTimeout(250);
@@ -80,7 +79,10 @@ async function benchmarkInternal(snippets, rawTimes, container, debugTimestamps 
     // Wait for the next frame to start, then start the real test.
     await waitForFrame();
 
-    window.inMeasurementPhase = true;
+    // Stop the warmer during the measurement phase so that warming tasks do not
+    // slip in prior to the post-paint task.
+    if (useCpuWarmer)
+      CpuWarmer.stop();
 
     startParseTime = performance.now();
     container.innerHTML = snippets[i].html;
@@ -89,7 +91,7 @@ async function benchmarkInternal(snippets, rawTimes, container, debugTimestamps 
     startLayoutTime = performance.now();
     container.offsetWidth; // force layout.
     startPaintTime = performance.now();
-    await waitForTimeout();
+    await waitForTimeout(); // Post a task to allow paint to run.
     endPaintTime = performance.now();
 
     rawTimes[i].parseTime = startStyleTime - startParseTime;
@@ -104,9 +106,10 @@ async function benchmarkInternal(snippets, rawTimes, container, debugTimestamps 
       performance.mark(`startPaint`, {startTime: startPaintTime});
       performance.mark(`endPaint`, {startTime: endPaintTime});
     }
-  }
 
-  window.shouldKeepCpuWarm = false;
+    if (useCpuWarmer)
+      CpuWarmer.start();
+  }
 }
 
 async function waitForFrame() {
@@ -117,29 +120,33 @@ async function waitForTimeout(t = 0) {
   return new Promise((resolve, reject) => setTimeout(resolve, t))
 }
 
-async function waitForPostMessage() {
-  return new Promise(resolve => {
-    window.onmessage = () => {
-      resolve();
-      window.onmessage = null;
-    };
-    window.postMessage(null, '*');
-  });
-}
-
-// Keep a busy loop of 1ms tasks running until `window.shouldKeepCpuWarm` is
-// set to false. Keeping the CPU out of idle states dramatically reduces both
-// total time and variance (see: test/experiments/cpu_warming.html).
-window.shouldKeepCpuWarm = false;
-async function keepCpuWarm() {
-  let end = performance.now() + 1;
-  let sum = 0;
-  while (performance.now() < end) {
-    sum += Math.random();
+// Class for continuously running busy-loop tasks. Keeping the CPU out of idle
+// states dramatically reduces both total time and variance (see:
+// test/experiments/cpu_warming.html).
+class CpuWarmer {
+  static start() {
+    if (!window.onmessage) {
+      window.onmessage = CpuWarmer.doWork;
+      CpuWarmer.doWork();
+    }
   }
-  if (window.shouldKeepCpuWarm) {
-    await waitForPostMessage();
-    keepCpuWarm();
+
+  static stop() {
+    window.onmessage = null;
+  }
+
+  static doWork() {
+    if (!window.onmessage) {
+      return;
+    }
+    // Busy loop for 1ms.
+    let end = performance.now() + 1;
+    let sum = 0;
+    while (performance.now() < end) {
+      sum += Math.random();
+    }
+    // Post a task to run the next loop.
+    window.postMessage(null, '*');
   }
 }
 

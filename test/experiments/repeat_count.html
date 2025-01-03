@@ -56,7 +56,7 @@
     // Run the benchmark.
     for (const [i, repeat] of repeats.entries()) {
       await waitForTimeout(1000);
-      await benchmarkInternal(snippetsMap[i], rawTimesMap[i], results, /* debugTimestamps */ false, /* keepWarm */ true);
+      await benchmarkInternal(snippetsMap[i], rawTimesMap[i], results, /* debugTimestamps */ false, /* useCpuWarmer */ true);
     }
 
     // Group by repeat count.

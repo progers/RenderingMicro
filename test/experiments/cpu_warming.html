@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <!--
-  This experiment demonstrates the effect of the keepWarm parameter, which keeps
-  the cpu power states high when running the benchmark. Run in each browser and
-  import into Google Sheets with Edit>Paste Special>CSV as columns.
+  This experiment demonstrates the effect of the useCpuWarmer parameter, which
+  keeps the cpu power states high when running the benchmark. Run in each
+  browser and import into Google Sheets with Edit>Paste Special>CSV as columns.
 
   Chrome Canary M133: -41.9% time, -57.0% stddev
   Safari TP 18.2: -56.0% time, -78.0% stddev
@@ -54,7 +54,7 @@
     // Run the benchmark.
     for (const [i, test] of tests.entries()) {
       await waitForTimeout(1000);
-      await benchmarkInternal(snippetsMap[i], rawTimesMap[i], results, /* debugTimestamps */ false, /* keepWarm */ test.includes('warm'));
+      await benchmarkInternal(snippetsMap[i], rawTimesMap[i], results, /* debugTimestamps */ false, /* useCpuWarmer */ test.includes('warm'));
     }
 
     // Dump the stats for each test.
