@@ -8,7 +8,8 @@ class Snippet {
 class RawTimes {
   constructor() {
     this.parseTime = 0;
-    this.styleLayoutTime = 0;
+    this.styleTime = 0;
+    this.layoutTime = 0;
     this.paintTime = 0;
   }
 }
@@ -18,12 +19,14 @@ class TimeStats {
     this.name = name;
 
     this.parseTimeAvg = 0;
-    this.styleLayoutTimeAvg = 0;
+    this.styleTimeAvg = 0;
+    this.layoutTimeAvg = 0;
     this.paintTimeAvg = 0;
     this.totalTimeAvg = 0;
 
     this.parseTimeStdDev = 0;
-    this.styleLayoutTimeStdDev = 0;
+    this.styleTimeStdDev = 0;
+    this.layoutTimeStdDev = 0;
     this.paintTimeStdDev = 0;
     this.totalTimeStdDev = 0;
   }
@@ -52,7 +55,8 @@ async function benchmark(inputSnippets, container) {
 
 async function benchmarkInternal(snippets, rawTimes, container, debugTimestamps = false, keepWarm = true) {
   let startParseTime = 0;
-  let startStyleLayoutTime = 0;
+  let startStyleTime = 0;
+  let startLayoutTime = 0;
   let startPaintTime = 0;
   let endPaintTime = 0;
 
@@ -76,23 +80,29 @@ async function benchmarkInternal(snippets, rawTimes, container, debugTimestamps 
     // Wait for the next frame to start, then start the real test.
     await waitForFrame();
 
+    window.inMeasurementPhase = true;
+
     startParseTime = performance.now();
     container.innerHTML = snippets[i].html;
-    startStyleLayoutTime = performance.now();
+    startStyleTime = performance.now();
+    container.checkVisibility(); // force style.
+    startLayoutTime = performance.now();
     container.offsetWidth; // force layout.
     startPaintTime = performance.now();
     await waitForTimeout();
     endPaintTime = performance.now();
 
-    rawTimes[i].parseTime = startStyleLayoutTime - startParseTime;
-    rawTimes[i].styleLayoutTime = startPaintTime - startStyleLayoutTime;
+    rawTimes[i].parseTime = startStyleTime - startParseTime;
+    rawTimes[i].styleTime = startLayoutTime - startStyleTime;
+    rawTimes[i].layoutTime = startPaintTime - startLayoutTime;
     rawTimes[i].paintTime = endPaintTime - startPaintTime;
 
     if (debugTimestamps) {
       performance.mark(`${snippets[i].name} - startParse`, {startTime: startParseTime});
-      performance.mark(`startStyleLayout`, {startTime: startStyleLayoutTime});
-      performance.mark(`startPaintTime`, {startTime: startPaintTime});
-      performance.mark(`endPaintTime`, {startTime: endPaintTime});
+      performance.mark(`startStyle`, {startTime: startStyleTime});
+      performance.mark(`startLayout`, {startTime: startLayoutTime});
+      performance.mark(`startPaint`, {startTime: startPaintTime});
+      performance.mark(`endPaint`, {startTime: endPaintTime});
     }
   }
 
@@ -168,8 +178,8 @@ function shuffleArray(array) {
 // Return an array of `TimeStats` where each entry corresponds to stats from
 // `orderedNames`.
 function getTimeStats(snippets, rawTimes, orderedNames) {
-  function totalTime(times) {
-    return times.parseTime + times.styleLayoutTime + times.paintTime;
+  function totalTime(t) {
+    return t.parseTime + t.styleTime + t.layoutTime + t.paintTime;
   }
 
   const sumByName = {};
@@ -179,14 +189,16 @@ function getTimeStats(snippets, rawTimes, orderedNames) {
       sumByName[name] = {
         count: 0,
         parseTime: 0,
-        styleLayoutTime: 0,
+        styleTime: 0,
+        layoutTime: 0,
         paintTime: 0,
         totalTime: 0
       };
     }
     sumByName[name].count++;
     sumByName[name].parseTime += rawTimes[i].parseTime;
-    sumByName[name].styleLayoutTime += rawTimes[i].styleLayoutTime;
+    sumByName[name].styleTime += rawTimes[i].styleTime;
+    sumByName[name].layoutTime += rawTimes[i].layoutTime;
     sumByName[name].paintTime += rawTimes[i].paintTime;
     sumByName[name].totalTime += totalTime(rawTimes[i]);
   }
@@ -196,19 +208,22 @@ function getTimeStats(snippets, rawTimes, orderedNames) {
     let timeStats = new TimeStats(name);
     let sum = sumByName[name];
     timeStats.parseTimeAvg = sum.parseTime / sum.count;
-    timeStats.styleLayoutTimeAvg = sum.styleLayoutTime / sum.count;
+    timeStats.styleTimeAvg = sum.styleTime / sum.count;
+    timeStats.layoutTimeAvg = sum.layoutTime / sum.count;
     timeStats.paintTimeAvg = sum.paintTime / sum.count;
     timeStats.totalTimeAvg = sum.totalTime / sum.count;
 
     // Calculate variances
     let parseTimeVariance = 0;
-    let styleLayoutTimeVariance = 0;
+    let styleTimeVariance = 0;
+    let layoutTimeVariance = 0;
     let paintTimeVariance = 0;
     let totalTimeVariance = 0;
     for (let i = 0; i < snippets.length; i++) {
       if (snippets[i].name === name) {
         parseTimeVariance += Math.pow(rawTimes[i].parseTime - timeStats.parseTimeAvg, 2);
-        styleLayoutTimeVariance += Math.pow(rawTimes[i].styleLayoutTime - timeStats.styleLayoutTimeAvg, 2);
+        styleTimeVariance += Math.pow(rawTimes[i].styleTime - timeStats.styleTimeAvg, 2);
+        layoutTimeVariance += Math.pow(rawTimes[i].layoutTime - timeStats.layoutTimeAvg, 2);
         paintTimeVariance += Math.pow(rawTimes[i].paintTime - timeStats.paintTimeAvg, 2);
         totalTimeVariance += Math.pow(totalTime(rawTimes[i]) - timeStats.totalTimeAvg, 2);
       }
@@ -216,7 +231,8 @@ function getTimeStats(snippets, rawTimes, orderedNames) {
 
     // Calculate standard deviations
     timeStats.parseTimeStdDev = Math.sqrt(parseTimeVariance / sum.count);
-    timeStats.styleLayoutTimeStdDev = Math.sqrt(styleLayoutTimeVariance / sum.count);
+    timeStats.styleTimeStdDev = Math.sqrt(styleTimeVariance / sum.count);
+    timeStats.layoutTimeStdDev = Math.sqrt(layoutTimeVariance / sum.count);
     timeStats.paintTimeStdDev = Math.sqrt(paintTimeVariance / sum.count);
     timeStats.totalTimeStdDev = Math.sqrt(totalTimeVariance / sum.count);
 

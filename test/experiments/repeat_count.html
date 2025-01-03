@@ -74,40 +74,46 @@
     }
 
     // Dump the stats for each test.
-    let statsHtml = 'Test, parseAvg, styleLayoutAvg, paintAvg, totalAvg, '
-      + 'parseStdDev, styleLayoutStdDev, paintStdDev, totalStdDev';
+    let statsHtml = 'Test, parseAvg, styleAvg, layoutAvg, paintAvg, totalAvg, '
+      + 'parseStdDev, styleStdDev, layoutStdDev, paintStdDev, totalStdDev';
     for (const i of Object.keys(snippetsMap)) {
       let name = snippetsMap[i][0].name;
       const stat = getTimeStats(snippetsMap[i], rawTimesMap[i], [name])[0];
       statsHtml += '<br>' + name;
       statsHtml += ',' + formatNumber(stat.parseTimeAvg);
-      statsHtml += ',' + formatNumber(stat.styleLayoutTimeAvg);
+      statsHtml += ',' + formatNumber(stat.styleTimeAvg);
+      statsHtml += ',' + formatNumber(stat.layoutTimeAvg);
       statsHtml += ',' + formatNumber(stat.paintTimeAvg);
       statsHtml += ',' + formatNumber(stat.totalTimeAvg);
       statsHtml += ',' + formatNumber(stat.parseTimeStdDev);
-      statsHtml += ',' + formatNumber(stat.styleLayoutTimeStdDev);
+      statsHtml += ',' + formatNumber(stat.styleTimeStdDev);
+      statsHtml += ',' + formatNumber(stat.layoutTimeStdDev);
       statsHtml += ',' + formatNumber(stat.paintTimeStdDev);
       statsHtml += ',' + formatNumber(stat.totalTimeStdDev);
     }
     results.innerHTML = statsHtml;
 
     // Dump the raw times for each test.
-    let rawParseTimesHtml = 'Raw Parse Times';
-    let rawStyleLayoutTimesHtml = 'Raw StyleLayout Times';
-    let rawPaintTimesHtml = 'Raw Paint Times';
+    let rawParseTimesHtml = 'Raw parse times';
+    let rawStyleTimesHtml = 'Raw style times';
+    let rawLayoutTimesHtml = 'Raw layout times';
+    let rawPaintTimesHtml = 'Raw paint times';
     for (const i of Object.keys(snippetsMap)) {
       let name = snippetsMap[i][0].name;
       rawParseTimesHtml += '<br>' + name;
-      rawStyleLayoutTimesHtml += '<br>' + name;
+      rawStyleTimesHtml += '<br>' + name;
+      rawLayoutTimesHtml += '<br>' + name;
       rawPaintTimesHtml += '<br>' + name;
       for (const [snippetIndex, snippet] of snippetsMap[i].entries()) {
         rawParseTimesHtml += ',' + formatNumber(rawTimesMap[i][snippetIndex].parseTime);
-        rawStyleLayoutTimesHtml += ',' + formatNumber(rawTimesMap[i][snippetIndex].styleLayoutTime);
+        rawStyleTimesHtml += ',' + formatNumber(rawTimesMap[i][snippetIndex].styleTime);
+        rawLayoutTimesHtml += ',' + formatNumber(rawTimesMap[i][snippetIndex].layoutTime);
         rawPaintTimesHtml += ',' + formatNumber(rawTimesMap[i][snippetIndex].paintTime);
       }
     }
     results.innerHTML += '<br><br>' + rawParseTimesHtml;
-    results.innerHTML += '<br><br>' + rawStyleLayoutTimesHtml;
+    results.innerHTML += '<br><br>' + rawStyleTimesHtml;
+    results.innerHTML += '<br><br>' + rawLayoutTimesHtml;
     results.innerHTML += '<br><br>' + rawPaintTimesHtml;
   </script>
 </body>

@@ -178,10 +178,13 @@
             <th rowspan="2">Snippet Name</th>
             <th colspan="2">Total Time (ms)</th>
             <th colspan="2">Parse Time (ms)</th>
-            <th colspan="2">Style/Layout Time (ms)</th>
+            <th colspan="2">Style Time (ms)</th>
+            <th colspan="2">Layout Time (ms)</th>
             <th colspan="2">Paint Time (ms)</th>
           </tr>
           <tr>
+            <th>Avg</th>
+            <th>Std Dev</th>
             <th>Avg</th>
             <th>Std Dev</th>
             <th>Avg</th>
@@ -198,8 +201,10 @@
           <td>${formatNumber(stats.totalTimeStdDev)}</td>
           <td>${formatNumber(stats.parseTimeAvg)}</td>
           <td>${formatNumber(stats.parseTimeStdDev)}</td>
-          <td>${formatNumber(stats.styleLayoutTimeAvg)}</td>
-          <td>${formatNumber(stats.styleLayoutTimeStdDev)}</td>
+          <td>${formatNumber(stats.styleTimeAvg)}</td>
+          <td>${formatNumber(stats.styleTimeStdDev)}</td>
+          <td>${formatNumber(stats.layoutTimeAvg)}</td>
+          <td>${formatNumber(stats.layoutTimeStdDev)}</td>
           <td>${formatNumber(stats.paintTimeAvg)}</td>
           <td>${formatNumber(stats.paintTimeStdDev)}</td>
         </tr>`;
