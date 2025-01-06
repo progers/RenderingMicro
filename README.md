@@ -22,9 +22,9 @@ We can use this tool to measure the cost of various approaches for drawing a che
 This approach turns out to be surprisingly expensive:
 | Browser | Platform | Rendering time (ms) | Standard Deviation (ms) |
 | --- | --- | --- | --- |
-| Chrome | MacOS, M1 | 0.86 | 0.12
-| Chrome | Android, Pixel 9 | 1.76 | 0.23
-| Safari | MacOS, M1 | 1.16 | 0.16
+| Chrome | MacOS, M1 | 0.73 | 0.06
+| Chrome | Android, Pixel 9 | 1.55 | 0.26
+| Safari | MacOS, M1 | 0.9 | 0.16
 
 ### 2. Inline SVG
 ```
@@ -42,9 +42,9 @@ This approach turns out to be surprisingly expensive:
 This is just an inline version of the background-image approach, but is significantly faster:
 | Browser | Platform | Rendering time (ms) | Standard Deviation (ms) |
 | --- | --- | --- | --- |
-| Chrome | MacOS, M1 | 0.26 | 0.18
-| Chrome | Android, Pixel 9 | 0.51 | 0.14
-| Safari | MacOS, M1 | 0.36 | 0.07
+| Chrome | MacOS, M1 | 0.13 | 0.06
+| Chrome | Android, Pixel 9 | 0.28 | 0.11
+| Safari | MacOS, M1 | 0.10 | 0.08
 
 
 ### 3. CSS clip-path
@@ -62,6 +62,6 @@ This is just an inline version of the background-image approach, but is signific
 This is fairly close to using inline SVG:
 | Browser | Platform | Rendering time (ms) | Standard Deviation (ms) |
 | --- | --- | --- | --- |
-| Chrome | MacOS, M1 | 0.22 | 0.07
-| Chrome | Android, Pixel 9 | 0.41 | 0.10
-| Safari | MacOS, M1 | 0.31 | 0.08
+| Chrome | MacOS, M1 | 0.08 | 0.06
+| Chrome | Android, Pixel 9 | 0.16 | 0.13
+| Safari | MacOS, M1 | 0.06 | 0.07

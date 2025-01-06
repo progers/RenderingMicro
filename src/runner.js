@@ -38,7 +38,11 @@ async function benchmark(inputSnippets, container) {
   // Selected using tests/experiments/repeat_count.html.
   const repeatCount = 50;
 
-  const snippets = generateUnique(inputSnippets, repeatCount);
+  // Run an additional "no-op" snippet to determine overhead.
+  const noopSnippet = new Snippet('__noop', '.');
+  const inputSnippetsWithNoop = [noopSnippet, ...inputSnippets];
+
+  const snippets = generateUnique(inputSnippetsWithNoop, repeatCount);
   shuffleArray(snippets); // Randomize the order.
 
   const rawTimes = [];
@@ -47,6 +51,9 @@ async function benchmark(inputSnippets, container) {
 
   const debugTimestamps = true;
   await benchmarkInternal(snippets, rawTimes, container, debugTimestamps);
+
+  // Adjust `rawTimes` to subtract out the overhead of the "no-op" snippets.
+  subtractAverageNoopRawTimes(noopSnippet.name, snippets, rawTimes);
 
   // The test names were shuffled, so use the original order from inputSnippets.
   const names = inputSnippets.map(snippet => snippet.name);
@@ -179,6 +186,29 @@ function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [array[i], array[j]] = [array[j], array[i]];
+  }
+}
+
+function subtractAverageNoopRawTimes(noopSnippetName, snippets, rawTimes) {
+  let noopCount = 0;
+  let noopParseTime = 0;
+  let noopStyleTime = 0;
+  let noopLayoutTime = 0;
+  let noopPaintTime = 0;
+  for (let i = 0; i < snippets.length; i++) {
+    if (snippets[i].name == noopSnippetName) {
+      noopCount++;
+      noopParseTime += rawTimes[i].parseTime;
+      noopStyleTime += rawTimes[i].styleTime;
+      noopLayoutTime += rawTimes[i].layoutTime;
+      noopPaintTime += rawTimes[i].paintTime;
+    }
+  }
+  for (let i = 0; i < snippets.length; i++) {
+    rawTimes[i].parseTime -= noopParseTime / noopCount;
+    rawTimes[i].styleTime -= noopStyleTime / noopCount;
+    rawTimes[i].layoutTime -= noopLayoutTime / noopCount;
+    rawTimes[i].paintTime -= noopPaintTime / noopCount;
   }
 }
 
