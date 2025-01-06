@@ -2,6 +2,8 @@
 
 A benchmark for html rendering engines which calculates repeatable, cross-browser breakdowns of rendering performance.
 
+Latest version: https://renderingmicro.pr.gg
+
 ## Example: drop-down icon
 
 We can use this tool to measure the cost of various approaches for drawing a chevron icon for a drop-downs.
