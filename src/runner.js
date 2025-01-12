@@ -38,7 +38,8 @@ async function benchmark(inputSnippets, container) {
   // Selected using tests/experiments/repeat_count.html.
   const repeatCount = 50;
 
-  // Run an additional "no-op" snippet to determine overhead.
+  // Run additional "no-op" snippets to establish minimum times (see:
+  // `subtractMinimumRawTimes`).
   const noopSnippet = new Snippet('__noop', '.');
   const inputSnippetsWithNoop = [noopSnippet, ...inputSnippets];
 
@@ -52,8 +53,8 @@ async function benchmark(inputSnippets, container) {
   const debugTimestamps = true;
   await benchmarkInternal(snippets, rawTimes, container, debugTimestamps);
 
-  // Adjust `rawTimes` to subtract out the overhead of the "no-op" snippets.
-  subtractAverageNoopRawTimes(noopSnippet.name, rawTimes);
+  // Adjust `rawTimes` to subtract out the overhead of the benchmark.
+  subtractMinimumRawTimes(rawTimes);
 
   // The test names were shuffled, so use the original order from inputSnippets.
   const orderedNames = inputSnippets.map(snippet => snippet.name);
@@ -190,26 +191,25 @@ function shuffleArray(array) {
   }
 }
 
-function subtractAverageNoopRawTimes(noopSnippetName, rawTimes) {
-  let noopCount = 0;
-  let noopParseTime = 0;
-  let noopStyleTime = 0;
-  let noopLayoutTime = 0;
-  let noopPaintTime = 0;
+// To remove the overhead of the benchmark itself, we run additional "no-op"
+// snippets which will calculate minimum times, and then adjust the times by
+// subtracting out these minimums.
+function subtractMinimumRawTimes(rawTimes) {
+  let minParse = Infinity;
+  let minStyle = Infinity;
+  let minLayout = Infinity;
+  let minPaint = Infinity;
   for (const times of rawTimes) {
-    if (times.name == noopSnippetName) {
-      noopCount++;
-      noopParseTime += times.parse;
-      noopStyleTime += times.style;
-      noopLayoutTime += times.layout;
-      noopPaintTime += times.paint;
-    }
+    minParse = Math.min(minParse, times.parse);
+    minStyle = Math.min(minStyle, times.style);
+    minLayout = Math.min(minLayout, times.layout);
+    minPaint = Math.min(minPaint, times.paint);
   }
   for (const times of rawTimes) {
-    times.parse -= noopParseTime / noopCount;
-    times.style -= noopStyleTime / noopCount;
-    times.layout -= noopLayoutTime / noopCount;
-    times.paint -= noopPaintTime / noopCount;
+    times.parse -= minParse;
+    times.style -= minStyle;
+    times.layout -= minLayout;
+    times.paint -= minPaint;
   }
 }
 
