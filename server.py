@@ -8,7 +8,7 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from socketserver import ThreadingMixIn
 import sys
 
-class CORSRequestHandler(SimpleHTTPRequestHandler):
+class RequestHandler(SimpleHTTPRequestHandler):
     def end_headers(self):
         self.send_header('Cross-Origin-Embedder-Policy', 'require-corp')
         self.send_header('Cross-Origin-Opener-Policy', 'same-origin')
@@ -21,7 +21,7 @@ class ThreadedHTTPServer(ThreadingMixIn, HTTPServer):
 
 if __name__ == '__main__':
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
-    server = ThreadedHTTPServer(('', port), CORSRequestHandler)
+    server = ThreadedHTTPServer(('', port), RequestHandler)
     try:
         print(f'Starting server on port {server.server_port}, use <Ctrl-C> to stop')
         server.serve_forever()
