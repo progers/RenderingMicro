@@ -20,11 +20,12 @@ We can use this tool to measure the cost of various approaches for drawing a che
 <div class="svg-image"></div>
 ```
 This approach turns out to be surprisingly expensive:
-| Browser | Platform | Rendering time (ms) | Standard Deviation (ms) |
-| --- | --- | --- | --- |
-| Chrome | MacOS, M1 | 0.73 | 0.06
-| Chrome | Android, Pixel 9 | 1.55 | 0.26
-| Safari | MacOS, M1 | 0.9 | 0.16
+| Browser | Platform | Total (ms) | Parse (ms) | Style (ms) | Layout (ms) | Paint (ms)
+| --- | --- | --- | --- | --- | --- | --- |
+| Chrome | MacOS, M1 | 0.76 | 0.05 | 0.58 | 0.01 | 0.12
+| Chrome | Android, Pixel 9 | 1.58 | 0.12 | 1.14 | 0.01 | 0.31
+| Safari | MacOS, M1 | 1.08 | 0.05 | 0.20 | 0.03 | 0.80
+| Firefox | MacOS, M1 | 0.71 | 0.10 | 0.21 | 0.03 | 0.38
 
 ### 2. Inline SVG
 ```
@@ -40,11 +41,12 @@ This approach turns out to be surprisingly expensive:
 <div class="css-clip-path"></div>
 ```
 This is just an inline version of the background-image approach, but is significantly faster:
-| Browser | Platform | Rendering time (ms) | Standard Deviation (ms) |
-| --- | --- | --- | --- |
-| Chrome | MacOS, M1 | 0.13 | 0.06
-| Chrome | Android, Pixel 9 | 0.28 | 0.11
-| Safari | MacOS, M1 | 0.10 | 0.08
+| Browser | Platform | Total (ms) | Parse (ms) | Style (ms) | Layout (ms) | Paint (ms)
+| --- | --- | --- | --- | --- | --- | --- |
+| Chrome | MacOS, M1 | 0.18 | 0.06 | 0.04 | 0.03 | 0.06
+| Chrome | Android, Pixel 9 | 0.42 | 0.14 | 0.11 | 0.07 | 0.09
+| Safari | MacOS, M1 | 0.26 | 0.07 | 0.08 | 0.06 | 0.06
+| Firefox | MacOS, M1 | 0.33 | 0.10 | 0.08 | 0.04 | 0.09
 
 
 ### 3. CSS clip-path
@@ -60,8 +62,9 @@ This is just an inline version of the background-image approach, but is signific
 <div class="css-clip-path"></div>
 ```
 This is fairly close to using inline SVG:
-| Browser | Platform | Rendering time (ms) | Standard Deviation (ms) |
-| --- | --- | --- | --- |
-| Chrome | MacOS, M1 | 0.08 | 0.06
-| Chrome | Android, Pixel 9 | 0.16 | 0.13
-| Safari | MacOS, M1 | 0.06 | 0.07
+| Browser | Platform | Total (ms) | Parse (ms) | Style (ms) | Layout (ms) | Paint (ms)
+| --- | --- | --- | --- | --- | --- | --- |
+| Chrome | MacOS, M1 | 0.12 | 0.05 | 0.03 | 0.01 | 0.03
+| Chrome | Android, Pixel 9 | 0.27 | 0.13 | 0.06 | 0.02 | 0.07
+| Safari | MacOS, M1 | 0.20 | 0.05 | 0.07 | 0.03 | 0.05
+| Firefox | MacOS, M1 | 0.30 | 0.10 | 0.07 | 0.03 | 0.10
