@@ -6,11 +6,12 @@ class Snippet {
 }
 
 class RawTimes {
-  constructor() {
-    this.parseTime = 0;
-    this.styleTime = 0;
-    this.layoutTime = 0;
-    this.paintTime = 0;
+  constructor(name) {
+    this.name = name;
+    this.parse = 0;
+    this.style = 0;
+    this.layout = 0;
+    this.paint = 0;
   }
 }
 
@@ -18,22 +19,21 @@ class TimeStats {
   constructor(name) {
     this.name = name;
 
-    this.parseTimeAvg = 0;
-    this.styleTimeAvg = 0;
-    this.layoutTimeAvg = 0;
-    this.paintTimeAvg = 0;
-    this.totalTimeAvg = 0;
+    this.parseAvg = 0;
+    this.styleAvg = 0;
+    this.layoutAvg = 0;
+    this.paintAvg = 0;
+    this.totalAvg = 0;
 
-    this.parseTimeStdDev = 0;
-    this.styleTimeStdDev = 0;
-    this.layoutTimeStdDev = 0;
-    this.paintTimeStdDev = 0;
-    this.totalTimeStdDev = 0;
+    this.parseStdDev = 0;
+    this.styleStdDev = 0;
+    this.layoutStdDev = 0;
+    this.paintStdDev = 0;
+    this.totalStdDev = 0;
   }
 }
 
-// Benchmark each Snippet in `inputSnippets`, returning `SnippetTimesAndStats`
-// for each.
+// Benchmark each Snippet in `inputSnippets`, returning `TimeStats` for each.
 async function benchmark(inputSnippets, container) {
   // Selected using tests/experiments/repeat_count.html.
   const repeatCount = 50;
@@ -47,17 +47,17 @@ async function benchmark(inputSnippets, container) {
 
   const rawTimes = [];
   for (const snippet of snippets)
-    rawTimes.push(new RawTimes());
+    rawTimes.push(new RawTimes(snippet.name));
 
   const debugTimestamps = true;
   await benchmarkInternal(snippets, rawTimes, container, debugTimestamps);
 
   // Adjust `rawTimes` to subtract out the overhead of the "no-op" snippets.
-  subtractAverageNoopRawTimes(noopSnippet.name, snippets, rawTimes);
+  subtractAverageNoopRawTimes(noopSnippet.name, rawTimes);
 
   // The test names were shuffled, so use the original order from inputSnippets.
-  const names = inputSnippets.map(snippet => snippet.name);
-  return getTimeStats(snippets, rawTimes, names);
+  const orderedNames = inputSnippets.map(snippet => snippet.name);
+  return getTimeStats(rawTimes, orderedNames);
 }
 
 async function benchmarkInternal(snippets, rawTimes, container, debugTimestamps = false, useCpuWarmer = true) {
@@ -101,13 +101,14 @@ async function benchmarkInternal(snippets, rawTimes, container, debugTimestamps 
     await waitForTimeout(); // Post a task to allow paint to run.
     endPaintTime = performance.now();
 
-    rawTimes[i].parseTime = startStyleTime - startParseTime;
-    rawTimes[i].styleTime = startLayoutTime - startStyleTime;
-    rawTimes[i].layoutTime = startPaintTime - startLayoutTime;
-    rawTimes[i].paintTime = endPaintTime - startPaintTime;
+    rawTimes[i].parse = startStyleTime - startParseTime;
+    rawTimes[i].style = startLayoutTime - startStyleTime;
+    rawTimes[i].layout = startPaintTime - startLayoutTime;
+    rawTimes[i].paint = endPaintTime - startPaintTime;
 
     if (debugTimestamps) {
-      performance.mark(`${snippets[i].name} - startParse`, {startTime: startParseTime});
+      performance.mark(`${snippets[i].name} - startParse`,
+        {startTime: startParseTime});
       performance.mark(`startStyle`, {startTime: startStyleTime});
       performance.mark(`startLayout`, {startTime: startLayoutTime});
       performance.mark(`startPaint`, {startTime: startPaintTime});
@@ -189,92 +190,93 @@ function shuffleArray(array) {
   }
 }
 
-function subtractAverageNoopRawTimes(noopSnippetName, snippets, rawTimes) {
+function subtractAverageNoopRawTimes(noopSnippetName, rawTimes) {
   let noopCount = 0;
   let noopParseTime = 0;
   let noopStyleTime = 0;
   let noopLayoutTime = 0;
   let noopPaintTime = 0;
-  for (let i = 0; i < snippets.length; i++) {
-    if (snippets[i].name == noopSnippetName) {
+  for (const times of rawTimes) {
+    if (times.name == noopSnippetName) {
       noopCount++;
-      noopParseTime += rawTimes[i].parseTime;
-      noopStyleTime += rawTimes[i].styleTime;
-      noopLayoutTime += rawTimes[i].layoutTime;
-      noopPaintTime += rawTimes[i].paintTime;
+      noopParseTime += times.parse;
+      noopStyleTime += times.style;
+      noopLayoutTime += times.layout;
+      noopPaintTime += times.paint;
     }
   }
-  for (let i = 0; i < snippets.length; i++) {
-    rawTimes[i].parseTime -= noopParseTime / noopCount;
-    rawTimes[i].styleTime -= noopStyleTime / noopCount;
-    rawTimes[i].layoutTime -= noopLayoutTime / noopCount;
-    rawTimes[i].paintTime -= noopPaintTime / noopCount;
+  for (const times of rawTimes) {
+    times.parse -= noopParseTime / noopCount;
+    times.style -= noopStyleTime / noopCount;
+    times.layout -= noopLayoutTime / noopCount;
+    times.paint -= noopPaintTime / noopCount;
   }
 }
 
 // Return an array of `TimeStats` where each entry corresponds to stats from
 // `orderedNames`.
-function getTimeStats(snippets, rawTimes, orderedNames) {
+function getTimeStats(rawTimes, orderedNames) {
   function totalTime(t) {
-    return t.parseTime + t.styleTime + t.layoutTime + t.paintTime;
+    return t.parse + t.style + t.layout + t.paint;
   }
 
   const sumByName = {};
-  for (let i = 0; i < snippets.length; i++) {
-    let name = snippets[i].name;
-    if (!sumByName[name]) {
-      sumByName[name] = {
+  for (const times of rawTimes) {
+    if (!sumByName[times.name]) {
+      sumByName[times.name] = {
         count: 0,
-        parseTime: 0,
-        styleTime: 0,
-        layoutTime: 0,
-        paintTime: 0,
-        totalTime: 0
+        parse: 0,
+        style: 0,
+        layout: 0,
+        paint: 0,
+        total: 0
       };
     }
-    sumByName[name].count++;
-    sumByName[name].parseTime += rawTimes[i].parseTime;
-    sumByName[name].styleTime += rawTimes[i].styleTime;
-    sumByName[name].layoutTime += rawTimes[i].layoutTime;
-    sumByName[name].paintTime += rawTimes[i].paintTime;
-    sumByName[name].totalTime += totalTime(rawTimes[i]);
+    sumByName[times.name].count++;
+    sumByName[times.name].parse += times.parse;
+    sumByName[times.name].style += times.style;
+    sumByName[times.name].layout += times.layout;
+    sumByName[times.name].paint += times.paint;
+    sumByName[times.name].total += totalTime(times);
   }
 
   const snippetTimeStats = [];
-  orderedNames.forEach(name => {
-    let timeStats = new TimeStats(name);
-    let sum = sumByName[name];
-    timeStats.parseTimeAvg = sum.parseTime / sum.count;
-    timeStats.styleTimeAvg = sum.styleTime / sum.count;
-    timeStats.layoutTimeAvg = sum.layoutTime / sum.count;
-    timeStats.paintTimeAvg = sum.paintTime / sum.count;
-    timeStats.totalTimeAvg = sum.totalTime / sum.count;
+  for (const name of orderedNames) {
+    const timeStats = new TimeStats(name);
+    const sum = sumByName[name];
 
-    // Calculate variances
-    let parseTimeVariance = 0;
-    let styleTimeVariance = 0;
-    let layoutTimeVariance = 0;
-    let paintTimeVariance = 0;
-    let totalTimeVariance = 0;
-    for (let i = 0; i < snippets.length; i++) {
-      if (snippets[i].name === name) {
-        parseTimeVariance += Math.pow(rawTimes[i].parseTime - timeStats.parseTimeAvg, 2);
-        styleTimeVariance += Math.pow(rawTimes[i].styleTime - timeStats.styleTimeAvg, 2);
-        layoutTimeVariance += Math.pow(rawTimes[i].layoutTime - timeStats.layoutTimeAvg, 2);
-        paintTimeVariance += Math.pow(rawTimes[i].paintTime - timeStats.paintTimeAvg, 2);
-        totalTimeVariance += Math.pow(totalTime(rawTimes[i]) - timeStats.totalTimeAvg, 2);
+    // Calculate averages.
+    timeStats.parseAvg = sum.parse / sum.count;
+    timeStats.styleAvg = sum.style / sum.count;
+    timeStats.layoutAvg = sum.layout / sum.count;
+    timeStats.paintAvg = sum.paint / sum.count;
+    timeStats.totalAvg = sum.total / sum.count;
+
+    // Calculate variances.
+    let parseVariance = 0;
+    let styleVariance = 0;
+    let layoutVariance = 0;
+    let paintVariance = 0;
+    let totalVariance = 0;
+    for (const times of rawTimes) {
+      if (times.name === name) {
+        parseVariance += Math.pow(times.parse - timeStats.parseAvg, 2);
+        styleVariance += Math.pow(times.style - timeStats.styleAvg, 2);
+        layoutVariance += Math.pow(times.layout - timeStats.layoutAvg, 2);
+        paintVariance += Math.pow(times.paint - timeStats.paintAvg, 2);
+        totalVariance += Math.pow(totalTime(times) - timeStats.totalAvg, 2);
       }
     }
 
-    // Calculate standard deviations
-    timeStats.parseTimeStdDev = Math.sqrt(parseTimeVariance / sum.count);
-    timeStats.styleTimeStdDev = Math.sqrt(styleTimeVariance / sum.count);
-    timeStats.layoutTimeStdDev = Math.sqrt(layoutTimeVariance / sum.count);
-    timeStats.paintTimeStdDev = Math.sqrt(paintTimeVariance / sum.count);
-    timeStats.totalTimeStdDev = Math.sqrt(totalTimeVariance / sum.count);
+    // Calculate standard deviations.
+    timeStats.parseStdDev = Math.sqrt(parseVariance / sum.count);
+    timeStats.styleStdDev = Math.sqrt(styleVariance / sum.count);
+    timeStats.layoutStdDev = Math.sqrt(layoutVariance / sum.count);
+    timeStats.paintStdDev = Math.sqrt(paintVariance / sum.count);
+    timeStats.totalStdDev = Math.sqrt(totalVariance / sum.count);
 
     snippetTimeStats.push(timeStats);
-  });
+  }
   return snippetTimeStats;
 }
 

@@ -197,16 +197,16 @@
       for (const stats of snippetStats) {
         resultsHtml += `<tr>
           <td>${stats.name}</td>
-          <td>${formatNumber(stats.totalTimeAvg)}</td>
-          <td>${formatNumber(stats.totalTimeStdDev)}</td>
-          <td>${formatNumber(stats.parseTimeAvg)}</td>
-          <td>${formatNumber(stats.parseTimeStdDev)}</td>
-          <td>${formatNumber(stats.styleTimeAvg)}</td>
-          <td>${formatNumber(stats.styleTimeStdDev)}</td>
-          <td>${formatNumber(stats.layoutTimeAvg)}</td>
-          <td>${formatNumber(stats.layoutTimeStdDev)}</td>
-          <td>${formatNumber(stats.paintTimeAvg)}</td>
-          <td>${formatNumber(stats.paintTimeStdDev)}</td>
+          <td>${formatNumber(stats.totalAvg)}</td>
+          <td>${formatNumber(stats.totalStdDev)}</td>
+          <td>${formatNumber(stats.parseAvg)}</td>
+          <td>${formatNumber(stats.parseStdDev)}</td>
+          <td>${formatNumber(stats.styleAvg)}</td>
+          <td>${formatNumber(stats.styleStdDev)}</td>
+          <td>${formatNumber(stats.layoutAvg)}</td>
+          <td>${formatNumber(stats.layoutStdDev)}</td>
+          <td>${formatNumber(stats.paintAvg)}</td>
+          <td>${formatNumber(stats.paintStdDev)}</td>
         </tr>`;
       }
       resultsHtml += `</table>`;

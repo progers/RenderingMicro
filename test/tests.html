@@ -26,84 +26,74 @@
     }
 
     runTest('Basic average statistics, two snippets', function() {
-      let snippets = [
-        new Snippet('test-a', '<test-a/>'),
-        new Snippet('test-b', '<test-b/>'),
-      ];
-      let rawTimes = [new RawTimes(), new RawTimes()];
-      rawTimes[0].parseTime = 5;
-      rawTimes[0].styleTime = 6;
-      rawTimes[0].layoutTime = 7;
-      rawTimes[0].paintTime = 8;
+      let rawTimes = [new RawTimes('test-a'), new RawTimes('test-b')];
+      rawTimes[0].parse = 5;
+      rawTimes[0].style = 6;
+      rawTimes[0].layout = 7;
+      rawTimes[0].paint = 8;
 
-      rawTimes[1].parseTime = 2;
-      rawTimes[1].styleTime = 2;
-      rawTimes[1].layoutTime = 2;
-      rawTimes[1].paintTime = 2;
+      rawTimes[1].parse = 2;
+      rawTimes[1].style = 2;
+      rawTimes[1].layout = 2;
+      rawTimes[1].paint = 2;
 
-      let timeStats = getTimeStats(snippets, rawTimes, ['test-a', 'test-b']);
+      let timeStats = getTimeStats(rawTimes, ['test-a', 'test-b']);
       assertEquals('test-a', timeStats[0].name);
-      assertEquals(5, timeStats[0].parseTimeAvg);
-      assertEquals(6, timeStats[0].styleTimeAvg);
-      assertEquals(7, timeStats[0].layoutTimeAvg);
-      assertEquals(8, timeStats[0].paintTimeAvg);
-      assertEquals(26, timeStats[0].totalTimeAvg);
+      assertEquals(5, timeStats[0].parseAvg);
+      assertEquals(6, timeStats[0].styleAvg);
+      assertEquals(7, timeStats[0].layoutAvg);
+      assertEquals(8, timeStats[0].paintAvg);
+      assertEquals(26, timeStats[0].totalAvg);
 
       assertEquals('test-b', timeStats[1].name);
-      assertEquals(2, timeStats[1].parseTimeAvg);
-      assertEquals(2, timeStats[1].styleTimeAvg);
-      assertEquals(2, timeStats[1].layoutTimeAvg);
-      assertEquals(2, timeStats[1].paintTimeAvg);
-      assertEquals(8, timeStats[1].totalTimeAvg);
+      assertEquals(2, timeStats[1].parseAvg);
+      assertEquals(2, timeStats[1].styleAvg);
+      assertEquals(2, timeStats[1].layoutAvg);
+      assertEquals(2, timeStats[1].paintAvg);
+      assertEquals(8, timeStats[1].totalAvg);
     });
 
     runTest('Basic stddev statistics, two snippets', function() {
-      let snippets = [
-        new Snippet('test-a', '<test_a_01/>'),
-        new Snippet('test-a', '<test_a_02/>'),
-        new Snippet('test-b', '<test_b_01/>'),
-        new Snippet('test-b', '<test_b_02/>'),
-      ];
       let rawTimes = [
-        new RawTimes(),
-        new RawTimes(),
-        new RawTimes(),
-        new RawTimes(),
+        new RawTimes('test-a'),
+        new RawTimes('test-a'),
+        new RawTimes('test-b'),
+        new RawTimes('test-b'),
       ];
-      rawTimes[0].parseTime = 3;
-      rawTimes[0].styleTime = 3;
-      rawTimes[0].layoutTime = 3;
-      rawTimes[0].paintTime = 3;
+      rawTimes[0].parse = 3;
+      rawTimes[0].style = 3;
+      rawTimes[0].layout = 3;
+      rawTimes[0].paint = 3;
 
-      rawTimes[1].parseTime = 5;
-      rawTimes[1].styleTime = 5;
-      rawTimes[1].layoutTime = 5;
-      rawTimes[1].paintTime = 5;
+      rawTimes[1].parse = 5;
+      rawTimes[1].style = 5;
+      rawTimes[1].layout = 5;
+      rawTimes[1].paint = 5;
 
-      let timeStats = getTimeStats(snippets, rawTimes, ['test-a', 'test-b']);
+      let timeStats = getTimeStats(rawTimes, ['test-a', 'test-b']);
       assertEquals('test-a', timeStats[0].name);
-      assertEquals(4, timeStats[0].parseTimeAvg);
-      assertEquals(4, timeStats[0].styleTimeAvg);
-      assertEquals(4, timeStats[0].layoutTimeAvg);
-      assertEquals(4, timeStats[0].paintTimeAvg);
-      assertEquals(16, timeStats[0].totalTimeAvg);
-      assertEquals(1, timeStats[0].parseTimeStdDev);
-      assertEquals(1, timeStats[0].styleTimeStdDev);
-      assertEquals(1, timeStats[0].layoutTimeStdDev);
-      assertEquals(1, timeStats[0].paintTimeStdDev);
-      assertEquals(4, timeStats[0].totalTimeStdDev);
+      assertEquals(4, timeStats[0].parseAvg);
+      assertEquals(4, timeStats[0].styleAvg);
+      assertEquals(4, timeStats[0].layoutAvg);
+      assertEquals(4, timeStats[0].paintAvg);
+      assertEquals(16, timeStats[0].totalAvg);
+      assertEquals(1, timeStats[0].parseStdDev);
+      assertEquals(1, timeStats[0].styleStdDev);
+      assertEquals(1, timeStats[0].layoutStdDev);
+      assertEquals(1, timeStats[0].paintStdDev);
+      assertEquals(4, timeStats[0].totalStdDev);
 
       assertEquals('test-b', timeStats[1].name);
-      assertEquals(0, timeStats[1].parseTimeAvg);
-      assertEquals(0, timeStats[1].styleTimeAvg);
-      assertEquals(0, timeStats[1].layoutTimeAvg);
-      assertEquals(0, timeStats[1].paintTimeAvg);
-      assertEquals(0, timeStats[1].totalTimeAvg);
-      assertEquals(0, timeStats[1].parseTimeStdDev);
-      assertEquals(0, timeStats[1].styleTimeStdDev);
-      assertEquals(0, timeStats[1].layoutTimeStdDev);
-      assertEquals(0, timeStats[1].paintTimeStdDev);
-      assertEquals(0, timeStats[1].totalTimeStdDev);
+      assertEquals(0, timeStats[1].parseAvg);
+      assertEquals(0, timeStats[1].styleAvg);
+      assertEquals(0, timeStats[1].layoutAvg);
+      assertEquals(0, timeStats[1].paintAvg);
+      assertEquals(0, timeStats[1].totalAvg);
+      assertEquals(0, timeStats[1].parseStdDev);
+      assertEquals(0, timeStats[1].styleStdDev);
+      assertEquals(0, timeStats[1].layoutStdDev);
+      assertEquals(0, timeStats[1].paintStdDev);
+      assertEquals(0, timeStats[1].totalStdDev);
     });
   </script>
 </body>

@@ -49,7 +49,7 @@
       // No need to shuffle since we only have a single snippet.
       let rawTimes = [];
       for (const snippet of snippetsMap[i])
-        rawTimes.push(new RawTimes());
+        rawTimes.push(new RawTimes(name));
       rawTimesMap[i] = rawTimes;
     }
 
@@ -76,20 +76,20 @@
     // Dump the stats for each test.
     let statsHtml = 'Test, parseAvg, styleAvg, layoutAvg, paintAvg, totalAvg, '
       + 'parseStdDev, styleStdDev, layoutStdDev, paintStdDev, totalStdDev';
-    for (const i of Object.keys(snippetsMap)) {
-      let name = snippetsMap[i][0].name;
-      const stat = getTimeStats(snippetsMap[i], rawTimesMap[i], [name])[0];
-      statsHtml += '<br>' + name;
-      statsHtml += ',' + formatNumber(stat.parseTimeAvg);
-      statsHtml += ',' + formatNumber(stat.styleTimeAvg);
-      statsHtml += ',' + formatNumber(stat.layoutTimeAvg);
-      statsHtml += ',' + formatNumber(stat.paintTimeAvg);
-      statsHtml += ',' + formatNumber(stat.totalTimeAvg);
-      statsHtml += ',' + formatNumber(stat.parseTimeStdDev);
-      statsHtml += ',' + formatNumber(stat.styleTimeStdDev);
-      statsHtml += ',' + formatNumber(stat.layoutTimeStdDev);
-      statsHtml += ',' + formatNumber(stat.paintTimeStdDev);
-      statsHtml += ',' + formatNumber(stat.totalTimeStdDev);
+    for (const i in rawTimesMap) {
+      const rawTimes = rawTimesMap[i];
+      const stat = getTimeStats(rawTimes, [rawTimes[0].name])[0];
+      statsHtml += '<br>' + rawTimes[0].name;
+      statsHtml += ',' + formatNumber(stat.parseAvg);
+      statsHtml += ',' + formatNumber(stat.styleAvg);
+      statsHtml += ',' + formatNumber(stat.layoutAvg);
+      statsHtml += ',' + formatNumber(stat.paintAvg);
+      statsHtml += ',' + formatNumber(stat.totalAvg);
+      statsHtml += ',' + formatNumber(stat.parseStdDev);
+      statsHtml += ',' + formatNumber(stat.styleStdDev);
+      statsHtml += ',' + formatNumber(stat.layoutStdDev);
+      statsHtml += ',' + formatNumber(stat.paintStdDev);
+      statsHtml += ',' + formatNumber(stat.totalStdDev);
     }
     results.innerHTML = statsHtml;
 
@@ -98,17 +98,18 @@
     let rawStyleTimesHtml = 'Raw style times';
     let rawLayoutTimesHtml = 'Raw layout times';
     let rawPaintTimesHtml = 'Raw paint times';
-    for (const i of Object.keys(snippetsMap)) {
-      let name = snippetsMap[i][0].name;
+    for (const i in rawTimesMap) {
+      const rawTimes = rawTimesMap[i];
+      let name = rawTimes[0].name;
       rawParseTimesHtml += '<br>' + name;
       rawStyleTimesHtml += '<br>' + name;
       rawLayoutTimesHtml += '<br>' + name;
       rawPaintTimesHtml += '<br>' + name;
-      for (const [snippetIndex, snippet] of snippetsMap[i].entries()) {
-        rawParseTimesHtml += ',' + formatNumber(rawTimesMap[i][snippetIndex].parseTime);
-        rawStyleTimesHtml += ',' + formatNumber(rawTimesMap[i][snippetIndex].styleTime);
-        rawLayoutTimesHtml += ',' + formatNumber(rawTimesMap[i][snippetIndex].layoutTime);
-        rawPaintTimesHtml += ',' + formatNumber(rawTimesMap[i][snippetIndex].paintTime);
+      for (const times of rawTimes) {
+        rawParseTimesHtml += ',' + formatNumber(times.parse);
+        rawStyleTimesHtml += ',' + formatNumber(times.style);
+        rawLayoutTimesHtml += ',' + formatNumber(times.layout);
+        rawPaintTimesHtml += ',' + formatNumber(times.paint);
       }
     }
     results.innerHTML += '<br><br>' + rawParseTimesHtml;
