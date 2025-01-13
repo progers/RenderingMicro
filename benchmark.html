@@ -65,8 +65,9 @@
 
   <script type="module">
     import { benchmark, Snippet, TimeStats } from './src/runner.js';
+    import { compress, decompress } from './src/gzip.js';
 
-    onload = () => {
+    onload = async () => {
       input.addEventListener('input', () => {
         updatePreviewContent();
         updateSnippetWarnings();
@@ -77,9 +78,10 @@
       });
 
       // Generate a persistent url with the current snippets as a url param.
-      copyLink.addEventListener('click', () => {
+      copyLink.addEventListener('click', async () => {
         const copyUrl = new URL(window.location.href);
-        copyUrl.searchParams.set('snippets', encodeURIComponent(input.value));
+        const compressed = await compress(input.value);
+        copyUrl.searchParams.set('snippets', compressed);
         navigator.clipboard.writeText(copyUrl.toString());
       });
 
@@ -88,7 +90,7 @@
       const currentURL = new URL(window.location.href);
       const currentSnippets = currentURL.searchParams.get('snippets');
       if (currentSnippets) {
-        input.value = decodeURIComponent(currentSnippets);
+        input.value = await decompress(currentSnippets);
       } else {
         input.value = examples.trim();
       }
