@@ -99,8 +99,13 @@
 
     function updatePreviewContent() {
       previewContent.innerHTML = '';
-      for (const snippet of getSnippets())
-        previewContent.innerHTML += `<h4>${snippet.name}</h4>${snippet.html}`;
+      for (const snippet of getSnippets()) {
+        // Modify the snippet html to simulate how the benchmark runner uses
+        // unique ids to prevent caching (see: `generateUnique()`).
+        let uniqueName = snippet.name + '_' + 123456789;
+        let uniqueHtml = snippet.html.replaceAll(snippet.name, uniqueName);
+        previewContent.innerHTML += `<h4>${snippet.name}</h4>${uniqueHtml}`;
+      }
     }
 
     async function runBenchmark() {
