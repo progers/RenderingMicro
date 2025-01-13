@@ -35,16 +35,17 @@ class TimeStats {
 
 // Benchmark each Snippet in `inputSnippets`, returning `TimeStats` for each.
 async function benchmark(inputSnippets, container) {
-  // Selected using tests/experiments/repeat_count.html.
-  const repeatCount = 50;
-
   // Run additional "no-op" snippets to establish minimum times (see:
   // `subtractMinimumRawTimes`).
   const noopSnippet = new Snippet('__noop', '.');
   const inputSnippetsWithNoop = [noopSnippet, ...inputSnippets];
 
+  // Selected using tests/experiments/repeat_count.html.
+  const repeatCount = 50;
   const snippets = generateUnique(inputSnippetsWithNoop, repeatCount);
-  shuffleArray(snippets); // Randomize the order.
+
+  // Randomize the order.
+  shuffleArray(snippets);
 
   const rawTimes = [];
   for (const snippet of snippets)
@@ -161,21 +162,26 @@ class CpuWarmer {
 
 // Return an array of |snippets| * |repeatCount| "unique" snippets, where a
 // snippet is made unique by replacing all instances of the name in the html
-// with a unique id. This ensures browsers cannot simply cache data between
-// multiple runs. For example, Chrome will cache the parsed data url for svg
-// images (background-image: url('data:image/svg+xml,<svg name=foo ... ')), and
-// we can ensure this doesn't get cached by replacing `foo` with `foo_4_1432`.
+// with a unique id to ensure browsers cannot simply cache data between multiple
+// runs. The unique id is generated from incrementing id in local storage.
+//
+// For example, a snippet with name "my-no-cache" and the following html:
+//   <img src="data:image/svg+xml,<svg uniquename='my-no-cache'
+//     xmlns='http://www.w3.org/2000/svg'><rect width='10' height='10'/></svg>">
+// Will be made unique by modifying all instances of "my-no-cache":
+//   <img src="data:image/svg+xml,<svg uniquename='my-no-cache_123434213'
+//     xmlns='http://www.w3.org/2000/svg'><rect width='10' height='10'/></svg>">
 function generateUnique(snippets, repeatCount) {
   let uniqueSnippets = [];
-
-  // Use an incrementing int from local storage as part of the unique id, to
-  // prevent caching when running tests multiple times without refreshing.
-  let noCacheInt = parseInt(localStorage.getItem('noCacheInt') || 1004);
-  localStorage.setItem('noCacheInt', ++noCacheInt);
-
   for (const snippet of snippets) {
     for (let i = 0; i < repeatCount; i++) {
-      let uniqueName = `${snippet.name}_${i}_${noCacheInt}`;
+      // Use an incrementing id from local storage to prevent caching when
+      // running tests multiple times without refreshing. The assumption is that
+      // browser caches are shorter lived than local storage.
+      let uid = parseInt(localStorage.getItem('uid') || 123456789);
+      localStorage.setItem('uid', ++uid);
+
+      let uniqueName = snippet.name + '_' + uid;
       let uniqueHtml = snippet.html.replaceAll(snippet.name, uniqueName);
       uniqueSnippets.push(new Snippet(snippet.name, uniqueHtml));
     }

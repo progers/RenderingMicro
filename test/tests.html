@@ -6,7 +6,7 @@
 
   <script type="module">
     import { benchmark, Snippet, TimeStats, TestInternals } from '../src/runner.js';
-    const { getTimeStats, RawTimes } = TestInternals;
+    const { getTimeStats, generateUnique, RawTimes } = TestInternals;
 
     function runTest(testName, testFunction) {
       try {
@@ -14,6 +14,14 @@
         results.innerHTML += '<p>' + testName + ': PASS</p>';
       } catch (error) {
         results.innerHTML += '<p>' + testName + ': FAIL - ' + error.message + '</p>';
+      }
+    }
+
+    function assertTrue(actual, message) {
+      if (!actual) {
+        // If a message is not provided, create a default one.
+        const errorMessage = message || `Expected true, but got ${actual}`;
+        throw new Error(errorMessage);
       }
     }
 
@@ -94,6 +102,14 @@
       assertEquals(0, timeStats[1].layoutStdDev);
       assertEquals(0, timeStats[1].paintStdDev);
       assertEquals(0, timeStats[1].totalStdDev);
+    });
+
+    runTest('Generated unique snippets should have unique html', function() {
+      let inputSnippets = new Snippet('name', '<div id=name></div>');
+      let uniqueSnippets = generateUnique([inputSnippets], 2);
+      assertEquals(uniqueSnippets.length, 2);
+      assertTrue(uniqueSnippets[0].html != inputSnippets.html);
+      assertTrue(uniqueSnippets[0].html != uniqueSnippets[1].html);
     });
   </script>
 </body>
