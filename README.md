@@ -6,7 +6,7 @@ Latest version: https://renderingmicro.pr.gg
 
 ## Example: drop-down icon
 
-We can use this tool to measure the cost of various approaches for drawing a chevron icon for a drop-downs.
+We can use this tool to measure the cost of various approaches for drawing a chevron (drop-down) icon.
 
 ### 1. SVG data url background-image
 ```
